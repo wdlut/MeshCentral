@@ -1389,6 +1389,11 @@
               }
             }
           },
+          "assistantTypeAgentInvite": {
+            "type": "integer",
+            "default": 0,
+            "description": "0 = System Tray, Connect on user request, 1 = System Tray, Always Connected, 2 = Application, Connect on user request, 3 = Application, Always connected, 4 = System Tray, Monitor Only"
+          },
           "certUrl": {
             "type": "string",
             "format": "uri",
@@ -3112,6 +3117,16 @@
                 ]
               }
             }
+          },
+          "showLanguageSelect": {
+            "type": "string",
+            "default": null,
+            "description": "Show Language Selector on Login Page, \"top\" inside Login Box or \"bottom\" at Bottom of Page",
+            "enum": [
+              null,
+              "top",
+              "bottom"
+            ]
           }
         }
       }
