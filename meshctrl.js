@@ -1164,8 +1164,8 @@ function serverConnect() {
     var url = 'wss://localhost/control.ashx';
     if (args.url) {
         url = args.url;
-        if (url.length < 5) { console.log("Invalid url."); process.exit(); return; }
-        if ((url.startsWith('wss://') == false) && (url.startsWith('ws://') == false)) { console.log("Invalid url."); process.exit(); return; }
+        if (url.length < 5) { console.log("Invalid url."); process.exit(1); return; }
+        if ((url.startsWith('wss://') == false) && (url.startsWith('ws://') == false)) { console.log("Invalid url."); process.exit(1); return; }
         var i = url.indexOf('?key='), loginKey = null;
         if (i >= 0) { loginKey = url.substring(i + 5); url = url.substring(0, i); }
         if (url.endsWith('/') == false) { url += '/'; }
@@ -1215,7 +1215,7 @@ function serverConnect() {
         if (args.loginuser != null) { username = args.loginuser; }
         url += '?auth=' + encodeCookie({ userid: 'user/' + domainid + '/' + username, domainid: domainid }, ckey);
     } else {
-        if (args.logindomain != null) { console.log("--logindomain can only be used along with --loginkey."); process.exit(); return; }
+        if (args.logindomain != null) { console.log("--logindomain can only be used along with --loginkey."); process.exit(1); return; }
         if (loginCookie != null) { url += '?auth=' + loginCookie; }
     }
 
@@ -1818,7 +1818,7 @@ function serverConnect() {
         if (err.code == 'ENOTFOUND') { console.log('Unable to resolve ' + url); }
         else if (err.code == 'ECONNREFUSED') { console.log('Unable to connect to ' + url); }
         else { console.log('Unable to connect to ' + url); }
-        process.exit();
+        process.exit(1);
     });
 
     ws.on('message', function incoming(rawdata) {
@@ -2093,7 +2093,7 @@ function serverConnect() {
                         }
                         if (usercount == 0) { console.log('No users in this user group.'); exit = true; } else { settings.multiresponse = usercount; }
                     }
-                    if (exit) { process.exit(); }
+                    if (exit) { process.exit(1); }
                 }
                 break;
             }
@@ -2282,7 +2282,7 @@ function serverConnect() {
                         }
                     }
                     console.log('Group id not found');
-                    process.exit();
+                    process.exit(1);
                 }
                 break;
             }
@@ -2482,7 +2482,7 @@ function connectTunnel(url) {
     settings.tunnelws = new WebSocket(url, options);
     settings.tunnelws.on('open', function () { console.log('Waiting for Agent...'); }); // Wait for agent connection
     settings.tunnelws.on('close', function () { console.log('Connection Closed.'); process.exit(); });
-    settings.tunnelws.on('error', function (err) { console.log(err); process.exit(); });
+    settings.tunnelws.on('error', function (err) { console.log(err); process.exit(1); });
 
     if (settings.cmd == 'shell') {
         // This code does all of the work for a shell command
@@ -2551,7 +2551,7 @@ function connectTunnel(url) {
                     } else if (cmd.action == 'uploaderror') {
                         if (settings.uploadFile != null) { require('fs').closeSync(settings.uploadFile); }
                         console.log('Upload error.');
-                        process.exit();
+                        process.exit(1);
                     }
                 }
             } else if (settings.tunnelwsstate == 0) {
@@ -2579,7 +2579,7 @@ function connectTunnel(url) {
                         // File is done, close everything.
                         if (settings.downloadFile != null) { require('fs').closeSync(settings.downloadFile); }
                         console.log('Download completed, ' + settings.downloadSize + ' bytes written.');
-                        process.exit();
+                        process.exit(0);
                     } else {
                         settings.tunnelws.send(JSON.stringify({ action: 'download', sub: 'ack', id: args.file })); // Send the ACK
                     }
@@ -2591,14 +2591,14 @@ function connectTunnel(url) {
                         if (cmd.id != args.file) return;
                         if (cmd.sub == 'start') {
                             if ((args.target.endsWith('\\')) || (args.target.endsWith('/'))) { args.target += path.parse(args.file).name; }
-                            try { settings.downloadFile = require('fs').openSync(args.target, 'w'); } catch (ex) { console.log("Unable to create file: " + args.target); process.exit(); return; }
+                            try { settings.downloadFile = require('fs').openSync(args.target, 'w'); } catch (ex) { console.log("Unable to create file: " + args.target); process.exit(1); return; }
                             settings.downloadSize = 0;
                             settings.tunnelws.send(JSON.stringify({ action: 'download', sub: 'startack', id: args.file }));
                             console.log('Download started: ' + args.target);
                         } else if (cmd.sub == 'cancel') {
                             if (settings.downloadFile != null) { require('fs').closeSync(settings.downloadFile); }
                             console.log('Download canceled.');
-                            process.exit();
+                            process.exit(1);
                         }
                     }
                 }
@@ -2655,7 +2655,7 @@ function displayDeviceInfo(sysinfo, lastconnect, network, nodes) {
     }
     if (node == null) {
         console.log("Invalid device id");
-        process.exit(); return;
+        process.exit(1); return;
     }
 
     var info = {};

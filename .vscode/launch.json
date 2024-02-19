@@ -5,11 +5,45 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-chrome",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/meshcentral",
+            "args": ["--user", "wdmeshadmin"],
             "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+              "NODE_PATH": "~/MeshCentral/node_modules"
+            },
+            "type": "pwa-node"
+        },
+        {
+            "name": "meshctrl",
+            "program": "${workspaceFolder}/meshctrl",
+            "args": [ "--url", "wss://192.168.202.147:49140" ,
+                      "--loginpass", "weda", "--loginuser", "weda", 
+                      "--id", "60e1hbj$DrRsGekYAe8qcmAN1fNPoBxh3OcMCZZBxL8ZEKu1GCxtjsrGH4P1dsck",
+                      "deviceinfo"
+                    ],
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "name"        : "Duk Attach",
+            "type"        : "duk",
+            "request"     : "attach",
+            "stopOnEntry" : false,
+            
+            "address"     : "192.168.202.159",
+            "port"        : 9091,
+            
+            "localRoots"  : [ "${workspaceRoot}" ],
+            
+            "sourceMaps"  : true,
+            "outDir"      : "${workspaceRoot}/bin"
         }
     ]
 }

@@ -636,9 +636,12 @@ var CreateAgentRemoteDesktop = function (canvasid, scrolldiv) {
     obj.xxMouseDblClick = function (e) { if (obj.State == 3) obj.SendMouseMsg(obj.KeyAction.DBLCLICK, e); if (e.preventDefault) e.preventDefault(); if (e.stopPropagation) e.stopPropagation(); return false; }
     obj.xxDOMMouseScroll = function (e) { if (obj.State == 3) { obj.SendMouseMsg(obj.KeyAction.SCROLL, e); return false; } return true; }
     obj.xxMouseWheel = function (e) { if (obj.State == 3) { obj.SendMouseMsg(obj.KeyAction.SCROLL, e); return false; } return true; }
+    
+    const fKeyRegEx = /F[1-9]+/;
     obj.xxKeyUp = function (e) {
         if ((e.key != 'Dead') && (obj.State == 3)) {
-            if ((typeof e.key == 'string') && (e.key.length == 1) && (e.ctrlKey != true) && (e.altKey != true) && (obj.remoteKeyMap == false)) {
+            if ((typeof e.key == 'string') && (e.key.length <= 2) && (e.ctrlKey == false) && (e.altKey == false) && (obj.remoteKeyMap == false) &&
+               (fKeyRegEx.test(e.key) == false) ) {
                 obj.SendKeyUnicode(obj.KeyAction.UP, e.key.charCodeAt(0));
             } else {
                 obj.SendKeyMsg(obj.KeyAction.UP, e);
@@ -648,7 +651,8 @@ var CreateAgentRemoteDesktop = function (canvasid, scrolldiv) {
     }
     obj.xxKeyDown = function (e) {
         if ((e.key != 'Dead') && (obj.State == 3)) {
-            if (!((typeof e.key == 'string') && (e.key.length == 1) && (e.ctrlKey != true) && (e.altKey != true) && (obj.remoteKeyMap == false))) {
+            if ( (typeof e.key != 'string') || (e.key.length > 2 ) || (e.ctrlKey == true) || (e.altKey == true) || (obj.remoteKeyMap == true) ||
+                 (fKeyRegEx.test(e.key) == true) ) {
                 obj.SendKeyMsg(obj.KeyAction.DOWN, e);
                 if (e.preventDefault) e.preventDefault(); if (e.stopPropagation) e.stopPropagation(); return false;
             }
