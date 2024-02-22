@@ -898,14 +898,15 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                         }
                         else if ((command.fileop == 'copy') || (command.fileop == 'move')) {
                             // Copy or move of one or many files
-                            if (common.validateArray(command.name, 1) == false) return;
-                            var scpath = meshPathToRealPath(command.path, user); // This will also check access rights
+                            if (common.validateArray(command.names, 1) == false) return;
+                            var scpath = meshPathToRealPath(command.scpath, user); // This will also check access rights
                             if (scpath == null) break;
                             // TODO: Check quota if this is a copy
                             for (i in command.names) {
                                 if (common.IsFilenameValid(command.names[i]) === true) {
                                     var s = parent.path.join(scpath, command.names[i]), d = parent.path.join(path, command.names[i]);
                                     sendUpdate = false;
+                                    try { fs.mkdirSync(path); } catch (ex) { } // try to create folder first incase folder is missing
                                     copyFile(s, d, function (op) { if (op != null) { fs.unlink(op, function (err) { parent.parent.DispatchEvent([user._id], obj, 'updatefiles'); }); } else { parent.parent.DispatchEvent([user._id], obj, 'updatefiles'); } }, ((command.fileop == 'move') ? s : null));
                                 }
                             }
@@ -3544,7 +3545,11 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                         const secret = otplib.authenticator.generateSecret(); // TODO: Check the random source of this value.
 
                         var domainName = parent.certificates.CommonName;
-                        if (domain.dns != null) { domainName = domain.dns; }
+                        if (domain.dns != null) { 
+                            domainName = domain.dns;
+                        } else if (domain.dns == null && domain.id != '') {
+                            domainName += "/" + domain.id;
+                        }
                         ws.send(JSON.stringify({ action: 'otpauth-request', secret: secret, url: otplib.authenticator.keyuri(encodeURIComponent(user.name), domainName, secret) }));
                     }
                     break;
@@ -6278,6 +6283,12 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                     delete doc.type;
                     delete doc.domain;
                     delete doc._id;
+
+                    // If this is not a device group admin users, don't send any BitLocker recovery passwords
+                    if ((rights != MESHRIGHT_ADMIN) && (doc.hardware) && (doc.hardware.windows) && (doc.hardware.windows.volumes)) {
+                        for (var i in doc.hardware.windows.volumes) { delete doc.hardware.windows.volumes[i].recoveryPassword; }
+                    }
+
                     if (command.nodeinfo === true) { doc.node = node; doc.rights = rights; }
                     obj.send(doc);
                 } else {

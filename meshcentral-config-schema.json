@@ -559,7 +559,6 @@
         "webPush": {
           "type": "object",
           "description": "When set with a valid email address, enables the MeshCentral web push notification feature. Allows administrators to send browser notifications to users even if they are not looking at the MeshCentral web site.",
-          "additionalProperties": false,
           "properties": {
             "email": {
               "type": "string",
@@ -664,7 +663,6 @@
         "localDiscovery": {
           "type": "object",
           "description": "When this server is in LAN mode, you may discover this server using a multicast discovery tool. When discovery happens, the name and info fields are sent back to the discovery tool.",
-          "additionalProperties": false,
           "properties": {
             "name": {
               "type": "string"
@@ -753,7 +751,6 @@
         },
         "webrtcConfig": {
           "type": "object",
-          "additionalProperties": false,
           "description": "The STUN servers used for WebRTC, if not specified the Google and Mozilla servers and used when the server is not in LAN mode.",
           "properties": {
             "iceServers": {
@@ -761,7 +758,6 @@
               "uniqueItems": true,
               "items": {
                 "type": "object",
-                "additionalProperties": false,
                 "properties": {
                   "urls": {
                     "type": "string"
@@ -779,7 +775,6 @@
         },
         "crowdsec": {
           "type": "object",
-          "additionalProperties": true,
           "description": "Enabled the MeshCentral built-in Crowdsec bouncer. This section is passed directly to the bouncer, all of the settings are documented at https://www.npmjs.com/package/@crowdsec/express-bouncer",
           "properties": {
             "url": {
@@ -808,24 +803,37 @@
         },
         "autoBackup": {
           "type": "object",
+          "description": "Enable automatic backups of your meshcentral-data",
           "properties": {
             "mongoDumpPath": {
-              "type": "string"
+              "type": "string",
+              "default": "mongodump",
+              "description": "The file path of where \"mongodump\" is located. Default is \"mongodump\""
             },
             "mysqlDumpPath": {
-              "type": "string"
+              "type": "string",
+              "default": "mysqldump",
+              "description": "The file path of where \"mysqldump\" is located. Default is \"mysqldump\""
             },
             "backupIntervalHours": {
-              "type": "integer"
+              "type": "integer",
+              "default": 24,
+              "description": "How often should the autobackup run in hours from the second meshcentral starts up? Default is every 24 hours"
             },
             "keepLastDaysBackup": {
-              "type": "integer"
+              "type": "integer",
+              "default": 10,
+              "description": "How many days of backups should the autobackup keep? Default is 10 Days worth"
             },
             "zipPassword": {
-              "type": "string"
+              "type": "string",
+              "default": null,
+              "description": "When specified, the ZIP backups will be password protected with the zipPassword"
             },
             "backupPath": {
-              "type": "string"
+              "type": "string",
+              "default": "meshcentral-backups",
+              "description": "The file path where backup files are kept. The default is \"meshcentral-backups\" which sits next to \"meshcentral-data\"."
             },
             "googleDrive": {
               "type": "object",
@@ -883,7 +891,6 @@
         },
         "maxInvalidLogin": {
           "type": "object",
-          "additionalProperties": false,
           "description": "This section described a policy for how many times an IP address is allowed to attempt to login incorrectly. By default it's 10 times in 10 minutes, but this can be changed here.",
           "properties": {
             "exclude": {
@@ -910,7 +917,6 @@
         },
         "maxInvalid2fa": {
           "type": "object",
-          "additionalProperties": false,
           "description": "This section described a policy for how many times an IP address is allowed to attempt to perform two-factor authentication (2FA) incorrectly. By default it's 10 times in 10 minutes, but this can be changed here.",
           "properties": {
             "exclude": {
@@ -937,7 +943,6 @@
         },
         "amtProvisioningServer": {
           "type": "object",
-          "additionalProperties": false,
           "required": [
             "deviceGroup",
             "newMebxPassword",
@@ -983,11 +988,11 @@
       }
     },
     "domaindefaults": {
-      "$ref": "#/properties/domains/items"
+      "$ref": "#/properties/domains/additionalProperties"
     },
     "domains": {
       "type": "object",
-      "items": {
+      "additionalProperties": {
         "type": "object",
         "properties": {
           "dns": {
@@ -1125,6 +1130,15 @@
           "newAccountsRights": {
             "type": "array",
             "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowedOrigin": {
+            "type": [ "array", "boolean" ],
+            "default": false,
+            "uniqueItems": true,
+            "description": "A list of allowed hostnames for HTTP request origin header. If false, a default list is created, if true, all hostnames are allowed.",
             "items": {
               "type": "string"
             }
@@ -1344,7 +1358,6 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "additionalProperties": false,
                   "required": [
                     "name",
                     "protocol",
@@ -1404,7 +1417,6 @@
               "object",
               "boolean"
             ],
-            "additionalProperties": false,
             "properties": {
               "Backup": {
                 "type": "boolean",
@@ -1629,7 +1641,6 @@
             ],
             "default": false,
             "description": "When set to true or set to an object, MeshCentral will synchronize LDAP user memberships to MeshCentral user groups.",
-            "additionalProperties": false,
             "properties": {
               "filter": {
                 "type": [
@@ -1684,7 +1695,6 @@
           "agentTag": {
             "type": "object",
             "description": "This section is used to indicate if parts of the meshagent.tag file should be used to set server-side device properties.",
-            "additionalProperties": false,
             "properties": {
               "ServerName": {
                 "type": "integer",
@@ -1738,7 +1748,6 @@
           "consentMessages": {
             "type": "object",
             "description": "This section is used to customize user consent prompts, these show up when asking if a remote session is allowed or not.",
-            "additionalProperties": false,
             "properties": {
               "Title": {
                 "type": "string"
@@ -1766,7 +1775,6 @@
           },
           "notificationMessages": {
             "type": "object",
-            "additionalProperties": false,
             "description": "This section is user to customize user notifications when a remote desktop, terminal or file session is connected to a remote system.",
             "properties": {
               "Title": {
@@ -1785,7 +1793,6 @@
           },
           "agentCustomization": {
             "type": "object",
-            "additionalProperties": false,
             "description": "Use this section to customize the agent branding.",
             "properties": {
               "displayName": {
@@ -1837,7 +1844,6 @@
           },
           "agentFileInfo": {
             "type": "object",
-            "additionalProperties": false,
             "description": "Use this section to set resource metadata of the Windows agents prior to signing. In Windows, you can right-click and select properties to view these values.",
             "properties": {
               "icon": {
@@ -1876,7 +1882,6 @@
           },
           "assistantCustomization": {
             "type": "object",
-            "additionalProperties": false,
             "description": "Use this section to customize the MeshCentral Assistant.",
             "properties": {
               "title": {
@@ -1898,7 +1903,6 @@
           },
           "androidCustomization": {
             "type": "object",
-            "additionalProperties": false,
             "description": "Use this section to customize the MeshCentral Agent for Android.",
             "properties": {
               "title": {
@@ -1967,7 +1971,6 @@
           },
           "userConsentFlags": {
             "type": "object",
-            "additionalProperties": false,
             "description": "Use this section to require user consent for this domain.",
             "properties": {
               "desktopnotify": {
@@ -2018,7 +2021,6 @@
           },
           "limits": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "MaxDevices": {
                 "type": "integer",
@@ -2120,7 +2122,6 @@
           },
           "amtManager": {
             "type": "object",
-            "additionalProperties": false,
             "description": "Information passed to the AMT manager module that impacts all Intel AMT device managed within this domain.",
             "properties": {
               "TlsConnections": {
@@ -2138,7 +2139,6 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "additionalProperties": false,
                   "required": [
                     "pass"
                   ],
@@ -2192,7 +2192,6 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "additionalProperties": false,
                   "required": [
                     "ssid"
                   ],
@@ -2237,7 +2236,6 @@
                       "description": "802.1x settings for this WIFI profile. Only required if the WIFI authentication type has 802.1x",
                       "default": null,
                       "type": "object",
-                      "additionalProperties": false,
                       "required": [
                         "authenticationProtocol"
                       ],
@@ -2351,7 +2349,6 @@
                   "object",
                   "boolean"
                 ],
-                "additionalProperties": false,
                 "required": [
                   "authenticationProtocol"
                 ],
@@ -2458,7 +2455,6 @@
           },
           "amtAcmActivation": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "log": {
                 "type": "string"
@@ -2472,7 +2468,6 @@
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
-                  "additionalProperties": false,
                   "properties": {
                     "certfiles": {
                       "type": "array",
@@ -2505,7 +2500,6 @@
           },
           "yubikey": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "id": {
                 "type": "string"
@@ -2564,7 +2558,6 @@
           },
           "sessionRecording": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "onlySelectedUsers": {
                 "type": "boolean",
@@ -2583,7 +2576,8 @@
               },
               "filepath": {
                 "type": "string",
-                "description": "The file path where recording files are kept."
+                "default": "meshcentral-recordings",
+                "description": "The file path where recording files are kept. The default is \"meshcentral-recordings\" which sits next to \"meshcentral-data\"."
               },
               "index": {
                 "type": "boolean",
@@ -2754,11 +2748,9 @@
           },
           "authStrategies": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "twitter": {
                 "type": "object",
-                "additionalProperties": false,
                 "properties": {
                   "callbackurl": {
                     "type": "string",
@@ -3135,7 +3127,6 @@
       "title": "Built-in Let's Encrypt support",
       "description": "If your server has a proper DNS name and it public facing on the Internet with a public facing HTTP server on port 80, you can get a free TLS certificate.",
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "email": {
           "type": "string",
@@ -3169,7 +3160,6 @@
       "propertyNames": {
         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
       },
-      "additionalProperties": false,
       "properties": {
         "serverId": {
           "type": "string"

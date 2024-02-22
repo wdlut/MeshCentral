@@ -3902,7 +3902,7 @@
             } else if (op == 302) { // Intel AMT power on
                 setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function () { meshserver.send({ action: 'poweraction', nodeids: [currentNode._id], actiontype: parseInt(op) }); }, "Perform Intel&reg; AMT power on?");
             } else if (op == 308) { // Intel AMT power off
-                setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function () { meshserver.send({ action: 'poweraction', nodeids: [currentNode._id], actiontype: parseInt(op) }); }, "Perform Intel&reg; AMT power off?");
+                setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function () { meshserver.send({ action: 'poweraction', nodeids: [currentNode._id], actiontype: parseInt(op) }); }, "Perform Intel&reg; AMT power off?<br><br><b>NOTE: If there is an active AMT session, then power off command will be rejected, so you must disconnect from the AMT session first!</b>");
             } else if (op == 310) { // Intel AMT reset
                 setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function () { meshserver.send({ action: 'poweraction', nodeids: [currentNode._id], actiontype: parseInt(op) }); }, "Perform Intel&reg; AMT reset?");
             } else if ((op == 400) || (op == 401)) {
@@ -6015,7 +6015,12 @@
                             if (iplayer.family == 'IPv6') { x += addDetailItem("IPv6 Layer", items.join(", ")); }
                         }
                     }
-                    x += '</div>';
+                    x += '</div></td></tr>';
+                }
+                if (hardware.network && hardware.network.dns) {
+                    x += '<tr><td><div class=style10 style=border-radius:5px;padding:8px>';
+                    x += addDetailItem("<b>DNS Servers</b>", hardware.network.dns.join(", "));
+                    x += '</div></td></tr>';
                 }
                 x += '</table>';
                 if (x != '') { sections.push({ name: "Networking", html: x, img: 'networking' }); }
@@ -6545,9 +6550,11 @@
 
         function p20installAndroidDialog() {
             if (xxdialogMode) return;
-            var x = '<div>' + "Install the MeshCentral Agent on your Android device. Once installed, click the pairing link to connect your device to this server." + '</div>';
-            x += '<br /><div><a href="https://play.google.com/store/apps/details?id=com.meshcentral.agent2"><b>' + "MeshCentral Agent for Android" + '</b></a><div>';
-            x += '<br /><div><a href="' + serverinfo.magenturl + ',' + serverinfo.agentCertHash + ',' + currentMesh._id.split('/')[2] + '"><b>' + "Device Pairing Link" + '</b></a><div>';
+            var x = '<div style=text-align:center><p>' + "Install the MeshCentral Agent on your Android device. Once installed, click the pairing link to connect your device to this server." + '</p>';
+            x += '<p><a rel=\"noreferrer noopener\" target=_blank href=\"https://play.google.com/store/apps/details?id=com.meshcentral.agent2\"><img style=cursor:pointer src=\"images/google-play-140.png\" width=140 srcset=\"images/google-play-280.png 2x\" /></a></p>';
+            x += '<p><a rel=\"noreferrer noopener\" target=_blank href=\"https://www.amazon.co.uk/gp/product/B097Z4Q7SK/\"><img style=cursor:pointer src=\"images/amazon-appstore-140.png\"  width=140 srcset=\"images/amazon-appstore-280.png 2x\" /></a></p>';
+            x += '<p><a rel=\"noreferrer noopener\" target=_blank href="meshagents?id=14' + (urlargs.key?('&key=' + urlargs.key):'') + '" title="' + "APK version of the MeshAgent" + '">' + "Android APK" + '</a></p>';
+            x += '<p><a href="' + serverinfo.magenturl + ',' + serverinfo.agentCertHash + ',' + currentMesh._id.split('/')[2] + '"><b>' + "Device Pairing Link" + '</b></a></p></div>';
             setDialogMode(2, "Android Installation", 1, null, x);
         }
 
