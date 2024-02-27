@@ -409,6 +409,7 @@ module.exports.pluginHandler = function (parent) {
                                         zipfile.openReadStream(entry, function (err, readStream) {
                                             if (err) throw err;
                                             readStream.on('end', function () { zipfile.readEntry(); });
+<<<<<<< HEAD
                                             if (process.platform == 'win32') {
                                                 readStream.pipe(obj.fs.createWriteStream(filePath));
                                             } else {
@@ -416,6 +417,10 @@ module.exports.pluginHandler = function (parent) {
                                                 if( fileMode <= 0 ) fileMode = 0o644;
                                                 readStream.pipe(obj.fs.createWriteStream(filePath, { mode: fileMode }));
                                             }
+=======
+                                            const fileMode = (entry.externalFileAttributes >> 16) & 0x0fff;
+                                            readStream.pipe(obj.fs.createWriteStream(filePath, { mode: fileMode } ));
+>>>>>>> ca6ed978 (Preservation of the executable rights of the files contained in a plugin)
                                         });
                                     }
                                 });
