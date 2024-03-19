@@ -827,6 +827,12 @@ In this example, we will:
 - MeshCentral will read the NGINX web certificate so agents will perform correct server authentication.
 - NGINX will be setup with long timeouts, because agents have long standard web socket connections.
 
+!!!note
+    With SELinux, NGINX reverse proxy requires 'setsebool -P httpd_can_network_relay 1'
+    Caution: httpd_can_network_relay only allows certain ports
+    Confirm you are using ports from this subset in MeshCentral
+    If you want to use a different port then you will need to add it to http_port_t
+
 Let’s get started by configuring MeshCentral with the following values in config.json:
 
 ```json
@@ -1652,7 +1658,40 @@ The callback URL will be of the form “https://(servername)/auth-saml-callback�
 Enabling SAML will require MeshCentral to install extra modules from NPM, so depending on your server configuration, you may need to run MeshCentral once manually.
 
 !!!note
-  MeshCentral only supports "POST". [For example Authentik's](https://github.com/Ylianst/MeshCentral/issues/4725) default setting is to use "Redirect" as a "Service Provider Binding".
+    MeshCentral only supports "POST". [For example Authentik's](https://github.com/Ylianst/MeshCentral/issues/4725) default setting is to use "Redirect" as a "Service Provider Binding".
+
+### Generic OpenID Connect Setup
+
+Generally, if you are using an IdP that supports OpenID Connect (OIDC), you can use a very basic configuration to get started, and if needed, add more specific or advanced configurations later. Here is what your config file will look like with a basic, generic, configuration.
+
+``` json
+{
+	"settings": {
+		"cert": "mesh.your.domain",
+		"port": 443,
+		"sqlite3": true
+	},
+	"domains": {
+		"": {
+			"title": "Mesh",
+			"title2": ".Your.Domain",
+			"authStrategies": {
+				"oidc": {
+					"issuer": "https://sso.your.domain",
+					"clientid": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+					"clientsecret": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+					"newAccounts": true
+				}
+			}
+		}
+  }
+}
+```
+
+As you can see, this is roughly the same as all the other OAuth2 based authentication strategies. These are the basics you need to get started using OpenID Connect because it's still authenticating with OAuth2. If you plan to take advantage of some of the more advanced features provided by this strategy you should consider reading the [additional strategy documentation](./openidConnectStrategy.md).
+
+> NOTE: MeshCentral will use `https://mesh.your.domain/auth-oidc-callback` as the default redirect uri.
+
 ## Improvements to MeshCentral
 
 In 2007, the first version of MeshCentral was built. We will refer to it as “MeshCentral1”. When MeshCentral1 was designed, HTML5 did not exist and web sockets where not implemented in any of the major browsers. Many design decisions were made at the time that are no longer optimal today. With the advent of the latest MeshCentral, MeshCentral1 is no longer supported and MeshCentral v2 has been significantly redesigned and mostly re-written based of previous version. Here is a list of improvements made in MeshCentral when compared with MeshCentral1:

@@ -16,7 +16,7 @@ var settings = {};
 const crypto = require('crypto');
 const args = require('minimist')(process.argv.slice(2));
 const path = require('path');
-const possibleCommands = ['edituser', 'listusers', 'listusersessions', 'listdevicegroups', 'listdevices', 'listusersofdevicegroup', 'listevents', 'logintokens', 'serverinfo', 'userinfo', 'adduser', 'removeuser', 'adddevicegroup', 'removedevicegroup', 'editdevicegroup', 'broadcast', 'showevents', 'addusertodevicegroup', 'removeuserfromdevicegroup', 'addusertodevice', 'removeuserfromdevice', 'sendinviteemail', 'generateinvitelink', 'config', 'movetodevicegroup', 'deviceinfo', 'removedevice', 'editdevice', 'addusergroup', 'listusergroups', 'removeusergroup', 'runcommand', 'shell', 'upload', 'download', 'deviceopenurl', 'devicemessage', 'devicetoast', 'addtousergroup', 'removefromusergroup', 'removeallusersfromusergroup', 'devicesharing', 'devicepower', 'indexagenterrorlog', 'agentdownload', 'report'];
+const possibleCommands = ['edituser', 'listusers', 'listusersessions', 'listdevicegroups', 'listdevices', 'listusersofdevicegroup', 'listevents', 'logintokens', 'serverinfo', 'userinfo', 'adduser', 'removeuser', 'adddevicegroup', 'removedevicegroup', 'editdevicegroup', 'broadcast', 'showevents', 'addusertodevicegroup', 'removeuserfromdevicegroup', 'addusertodevice', 'removeuserfromdevice', 'sendinviteemail', 'generateinvitelink', 'config', 'movetodevicegroup', 'deviceinfo', 'removedevice', 'editdevice', 'addusergroup', 'listusergroups', 'removeusergroup', 'runcommand', 'shell', 'upload', 'download', 'deviceopenurl', 'devicemessage', 'devicetoast', 'addtousergroup', 'removefromusergroup', 'removeallusersfromusergroup', 'devicesharing', 'devicepower', 'indexagenterrorlog', 'agentdownload', 'report', 'grouptoast', 'groupmessage'];
 if (args.proxy != null) { try { require('https-proxy-agent'); } catch (ex) { console.log('Missing module "https-proxy-agent", type "npm install https-proxy-agent" to install it.'); return; } }
 
 if (args['_'].length == 0) {
@@ -66,6 +66,8 @@ if (args['_'].length == 0) {
     console.log("  DeviceOpenUrl               - Open a URL on a remote device.");
     console.log("  DeviceMessage               - Open a message box on a remote device.");
     console.log("  DeviceToast                 - Display a toast notification on a remote device.");
+    console.log("  GroupMessage                - Open a message box on remote devices in a specific device group.");
+    console.log("  GroupToast                  - Display a toast notification on remote devices in a specific device group.");
     console.log("  DevicePower                 - Perform wake/sleep/reset/off operations on remote devices.");
     console.log("  DeviceSharing               - View, add and remove sharing links for a given device.");
     console.log("  AgentDownload               - Download an agent of a specific type for a device group.");
@@ -272,6 +274,18 @@ if (args['_'].length == 0) {
         }
         case 'devicetoast': {
             if (args.id == null) { console.log(winRemoveSingleQuotes("Missing device id, use --id '[deviceid]'")); }
+            else if (args.msg == null) { console.log("Remote message, use --msg \"[message]\" specify a remote message."); }
+            else { ok = true; }
+            break;
+        }
+        case 'groupmessage': {
+            if (args.id == null) { console.log(winRemoveSingleQuotes("Missing device group id, use --id '[devicegroupid]'")); }
+            else if (args.msg == null) { console.log("Remote message, use --msg \"[message]\" specify a remote message."); }
+            else { ok = true; }
+            break;
+        }
+        case 'grouptoast': {
+            if (args.id == null) { console.log(winRemoveSingleQuotes("Missing device group id, use --id '[devicegroupid]'")); }
             else if (args.msg == null) { console.log("Remote message, use --msg \"[message]\" specify a remote message."); }
             else { ok = true; }
             break;
@@ -865,6 +879,7 @@ if (args['_'].length == 0) {
                         console.log(winRemoveSingleQuotes("  MeshCtrl DeviceSharing --id 'deviceid' --add Guest --start " + localISOTime + " --duration 30"));
                         console.log(winRemoveSingleQuotes("  MeshCtrl DeviceSharing --id 'deviceid' --add Guest --start " + localISOTime + " --duration 30 --daily"));
                         console.log(winRemoveSingleQuotes("  MeshCtrl DeviceSharing --id 'deviceid' --add Guest --type desktop,terminal --consent prompt"));
+                        console.log(winRemoveSingleQuotes("  MeshCtrl DeviceSharing --id 'deviceid' --add Guest --type http --port 80"));
                         console.log("\r\nRequired arguments:\r\n");
                         if (process.platform == 'win32') {
                             console.log("  --id [deviceid]                - The device identifier.");
@@ -872,16 +887,17 @@ if (args['_'].length == 0) {
                             console.log("  --id '[deviceid]'              - The device identifier.");
                         }
                         console.log("\r\nOptional arguments:\r\n");
-                        console.log("  --remove [shareid]              - Remove a device sharing link.");
-                        console.log("  --add [guestname]               - Add a device sharing link.");
-                        console.log("  --type [desktop,terminal,files] - Type of sharing to add, can be combined. default is desktop.");
-                        console.log("  --viewonly                      - Make desktop sharing view only.");
-                        console.log("  --consent [notify,prompt]       - Consent flags, default is notify.");
-                        console.log("  --start [yyyy-mm-ddThh:mm:ss]   - Start time, default is now.");
-                        console.log("  --end [yyyy-mm-ddThh:mm:ss]     - End time.");
-                        console.log("  --duration [minutes]            - Duration of the share, default is 60 minutes.");
-                        console.log("  --daily                         - Add recurring daily device share.");
-                        console.log("  --weekly                        - Add recurring weekly device share.");
+                        console.log("  --remove [shareid]                         - Remove a device sharing link.");
+                        console.log("  --add [guestname]                          - Add a device sharing link.");
+                        console.log("  --type [desktop,terminal,files,http,https] - Type of sharing to add, can be combined. default is desktop.");
+                        console.log("  --viewonly                                 - Make desktop sharing view only.");
+                        console.log("  --consent [notify,prompt,none]             - Consent flags, default is notify.");
+                        console.log("  --start [yyyy-mm-ddThh:mm:ss]              - Start time, default is now.");
+                        console.log("  --end [yyyy-mm-ddThh:mm:ss]                - End time.");
+                        console.log("  --duration [minutes]                       - Duration of the share, default is 60 minutes.");
+                        console.log("  --daily                                    - Add recurring daily device share.");
+                        console.log("  --weekly                                   - Add recurring weekly device share.");
+                        console.log("  --port [portnumber]                        - Set alternative port for http or https, default is 80 for http and 443 for https.");
                         break;
                     }
                     case 'agentdownload': {
@@ -941,15 +957,17 @@ if (args['_'].length == 0) {
                         console.log("Display a message on the remote device, Example usages:\r\n");
                         console.log(winRemoveSingleQuotes("  MeshCtrl DeviceMessage --id 'deviceid' --msg \"message\""));
                         console.log(winRemoveSingleQuotes("  MeshCtrl DeviceMessage --id 'deviceid' --msg \"message\" --title \"title\""));
+                        console.log(winRemoveSingleQuotes("  MeshCtrl DeviceMessage --id 'deviceid' --msg \"message\" --title \"title\" --timeout 120000"));
                         console.log("\r\nRequired arguments:\r\n");
                         if (process.platform == 'win32') {
-                            console.log("  --id [deviceid]        - The device identifier.");
+                            console.log("  --id [deviceid]          - The device identifier.");
                         } else {
-                            console.log("  --id '[deviceid]'      - The device identifier.");
+                            console.log("  --id '[deviceid]'        - The device identifier.");
                         }
-                        console.log("  --msg [message]        - The message to display.");
+                        console.log("  --msg [message]          - The message to display.");
                         console.log("\r\nOptional arguments:\r\n");
-                        console.log("  --title [title]        - Messagebox title, default is \"MeshCentral\".");
+                        console.log("  --title [title]          - Messagebox title, default is \"MeshCentral\".");
+                        console.log("  --timeout [miliseconds]  - After timeout messagebox vanishes, 0 keeps messagebox open until closed manually, default is 120000 (2 Minutes).");
                         break;
                     }
                     case 'devicetoast': {
@@ -961,6 +979,38 @@ if (args['_'].length == 0) {
                             console.log("  --id [deviceid]        - The device identifier.");
                         } else {
                             console.log("  --id '[deviceid]'      - The device identifier.");
+                        }
+                        console.log("  --msg [message]        - The message to display.");
+                        console.log("\r\nOptional arguments:\r\n");
+                        console.log("  --title [title]        - Toast title, default is \"MeshCentral\".");
+                        break;
+                    }
+                    case 'groupmessage': {
+                        console.log("Open a message box on remote devices in a specific device group, Example usages:\r\n");
+                        console.log(winRemoveSingleQuotes("  MeshCtrl GroupMessage --id 'devicegroupid' --msg \"message\""));
+                        console.log(winRemoveSingleQuotes("  MeshCtrl GroupMessage --id 'devicegroupid' --msg \"message\" --title \"title\""));
+                        console.log(winRemoveSingleQuotes("  MeshCtrl GroupMessage --id 'devicegroupid' --msg \"message\" --title \"title\" --timeout 120000"));
+                        console.log("\r\nRequired arguments:\r\n");
+                        if (process.platform == 'win32') {
+                            console.log("  --id [devicegroupid]     - The device identifier.");
+                        } else {
+                            console.log("  --id '[devicegroupid]'   - The device identifier.");
+                        }
+                        console.log("  --msg [message]          - The message to display.");
+                        console.log("\r\nOptional arguments:\r\n");
+                        console.log("  --title [title]          - Messagebox title, default is \"MeshCentral\".");
+                        console.log("  --timeout [miliseconds]  - After timeout messagebox vanishes, 0 keeps messagebox open until closed manually, default is 120000 (2 Minutes).");
+                        break;
+                    }
+                    case 'grouptoast': {
+                        console.log("Display a toast notification on remote devices in a specific device group, Example usages:\r\n");
+                        console.log(winRemoveSingleQuotes("  MeshCtrl GroupToast --id 'devicegroupid' --msg \"message\""));
+                        console.log(winRemoveSingleQuotes("  MeshCtrl GroupToast --id 'devicegroupid' --msg \"message\" --title \"title\""));
+                        console.log("\r\nRequired arguments:\r\n");
+                        if (process.platform == 'win32') {
+                            console.log("  --id [devicegroupid]   - The device identifier.");
+                        } else {
+                            console.log("  --id '[devicegroupid]' - The device identifier.");
                         }
                         console.log("  --msg [message]        - The message to display.");
                         console.log("\r\nOptional arguments:\r\n");
@@ -1659,10 +1709,12 @@ function serverConnect() {
                     var p = 0;
                     if (args.type != null) {
                         var shareTypes = args.type.toLowerCase().split(',');
-                        for (var i in shareTypes) { if ((shareTypes[i] != 'terminal') && (shareTypes[i] != 'desktop') && (shareTypes[i] != 'files')) { console.log("Unknown sharing type: " + shareTypes[i]); process.exit(1); } }
+                        for (var i in shareTypes) { if ((shareTypes[i] != 'terminal') && (shareTypes[i] != 'desktop') && (shareTypes[i] != 'files') && (shareTypes[i] != 'http') && (shareTypes[i] != 'https')) { console.log("Unknown sharing type: " + shareTypes[i]); process.exit(1); } }
                         if (shareTypes.indexOf('terminal') >= 0) { p |= 1; }
                         if (shareTypes.indexOf('desktop') >= 0) { p |= 2; }
                         if (shareTypes.indexOf('files') >= 0) { p |= 4; }
+                        if (shareTypes.indexOf('http') >= 0) { p |= 8; }
+                        if (shareTypes.indexOf('https') >= 0) { p |= 16; }
                     }
                     if (p == 0) { p = 2; } // Desktop
 
@@ -1697,6 +1749,19 @@ function serverConnect() {
                         }
                     }
 
+                    var port = null;
+                    // Set Port Number if http or https
+                    if ((p & 8) || (p & 16)) {
+                        if (typeof args.port == 'number') {
+                            if ((args.port < 1) || (args.port > 65535)) { console.log("Port number must be between 1 and 65535."); process.exit(1); }
+                            port = args.port;
+                        } else if ((p & 8)) {
+                            port = 80;
+                        } else if ((p & 16)) {
+                            port = 443;
+                        }
+                    }
+
                     // Start and end time
                     var start = null, end = null;
                     if (args.start) { start = Math.floor(Date.parse(args.start) / 1000); end = start + (60 * 60); }
@@ -1713,14 +1778,14 @@ function serverConnect() {
                         if ((typeof args.duration != 'number') || (args.duration < 1)) { console.log("Invalid duration value."); process.exit(1); return; }
 
                         // Recurring sharing
-                        ws.send(JSON.stringify({ action: 'createDeviceShareLink', nodeid: args.id, guestname: args.add, p: p, consent: consent, start: start, expire: args.duration, recurring: recurring, viewOnly: viewOnly, responseid: 'meshctrl' }));
+                        ws.send(JSON.stringify({ action: 'createDeviceShareLink', nodeid: args.id, guestname: args.add, p: p, consent: consent, start: start, expire: args.duration, recurring: recurring, viewOnly: viewOnly, port: port, responseid: 'meshctrl' }));
                     } else {
                         if ((start == null) && (end == null)) {
                             // Unlimited sharing
-                            ws.send(JSON.stringify({ action: 'createDeviceShareLink', nodeid: args.id, guestname: args.add, p: p, consent: consent, expire: 0, viewOnly: viewOnly, responseid: 'meshctrl' }));
+                            ws.send(JSON.stringify({ action: 'createDeviceShareLink', nodeid: args.id, guestname: args.add, p: p, consent: consent, expire: 0, viewOnly: viewOnly, port: port, responseid: 'meshctrl' }));
                         } else {
                             // Time limited sharing
-                            ws.send(JSON.stringify({ action: 'createDeviceShareLink', nodeid: args.id, guestname: args.add, p: p, consent: consent, start: start, end: end, viewOnly: viewOnly, responseid: 'meshctrl' }));
+                            ws.send(JSON.stringify({ action: 'createDeviceShareLink', nodeid: args.id, guestname: args.add, p: p, consent: consent, start: start, end: end, viewOnly: viewOnly, port: port, responseid: 'meshctrl' }));
                         }
                     }
                 } else if (args.remove) {
@@ -1735,11 +1800,19 @@ function serverConnect() {
                 break;
             }
             case 'devicemessage': {
-                ws.send(JSON.stringify({ action: 'msg', type: 'messagebox', nodeid: args.id, title: args.title ? args.title : "MeshCentral", msg: args.msg, responseid: 'meshctrl' }));
+                ws.send(JSON.stringify({ action: 'msg', type: 'messagebox', nodeid: args.id, title: args.title ? args.title : "MeshCentral", msg: args.msg, timeout: args.timeout ? args.timeout : 120000, responseid: 'meshctrl' }));
                 break;
             }
             case 'devicetoast': {
                 ws.send(JSON.stringify({ action: 'toast', nodeids: [args.id], title: args.title ? args.title : "MeshCentral", msg: args.msg, responseid: 'meshctrl' }));
+                break;
+            }
+            case 'groupmessage': {
+                ws.send(JSON.stringify({ action: 'nodes', meshid: args.id, responseid: 'meshctrl' }));
+                break;
+            }
+            case 'grouptoast': {
+                ws.send(JSON.stringify({ action: 'nodes', meshid: args.id, responseid: 'meshctrl' }));
                 break;
             }
             case 'report': {
@@ -2220,6 +2293,30 @@ function serverConnect() {
                         }
                     }
                     process.exit();
+                }
+                if ((settings.cmd == 'groupmessage') && (data.responseid == 'meshctrl')) {
+                    if ((data.nodes != null)) {
+                        for (var i in data.nodes) {
+                            for (let index = 0; index < data.nodes[i].length; index++) {
+                                const element = data.nodes[i][index];
+                                ws.send(JSON.stringify({ action: 'msg', type: 'messagebox', nodeid: element._id, title: args.title ? args.title : "MeshCentral", msg: args.msg, timeout: args.timeout ? args.timeout : 120000 }));
+                            }
+                        }
+                    }
+
+                    setTimeout(function(){ console.log('ok'); process.exit(); }, 1000);
+                }
+                if ((settings.cmd == 'grouptoast') && (data.responseid == 'meshctrl')) {
+                    if (data.nodes != null) {
+                        for (var i in data.nodes) {
+                            var nodes = [];
+                            for (let index = 0; index < data.nodes[i].length; index++) {
+                                const element = data.nodes[i][index];
+                                nodes.push(element._id);
+                            }
+                            ws.send(JSON.stringify({ action: 'toast', nodeids: nodes, title: args.title ? args.title : "MeshCentral", msg: args.msg, responseid: 'meshctrl' }));
+                        }
+                    }
                 }
                 break;
             }

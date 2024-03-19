@@ -117,9 +117,16 @@ function linux_identifiers()
 
     var child = require('child_process').execFile('/bin/sh', ['sh']);
     child.stdout.str = ''; child.stdout.on('data', dataHandler);
-    child.stdin.write('cat /proc/cpuinfo | grep "model name" | ' + "tr '\\n' ':' | awk -F: '{ print $2 }'\nexit\n");
+    child.stdin.write('cat /proc/cpuinfo | grep -i "model name" | ' + "tr '\\n' ':' | awk -F: '{ print $2 }'\nexit\n");
     child.waitExit();
     identifiers['cpu_name'] = child.stdout.str.trim();
+    if (identifiers['cpu_name'] == "") { // CPU BLANK, check lscpu instead
+        child = require('child_process').execFile('/bin/sh', ['sh']);
+        child.stdout.str = ''; child.stdout.on('data', dataHandler);
+        child.stdin.write('lscpu | grep -i "model name" | ' + "tr '\\n' ':' | awk -F: '{ print $2 }'\nexit\n");
+        child.waitExit();
+        identifiers['cpu_name'] = child.stdout.str.trim();
+    }
     child = null;
 
 
@@ -383,7 +390,7 @@ function windows_volumes()
     p1.child = child;
     child.promise = p1;
     child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-    child.stdin.write('Get-Volume | Select-Object -Property DriveLetter,FileSystemLabel,FileSystemType,Size,DriveType | ConvertTo-Csv -NoTypeInformation\nexit\n');
+    child.stdin.write('Get-Volume | Select-Object -Property DriveLetter,FileSystemLabel,FileSystemType,Size,SizeRemaining,DriveType | ConvertTo-Csv -NoTypeInformation\nexit\n');
     child.on('exit', function (c)
     {
         var a, i, tokens, key;
@@ -400,7 +407,9 @@ function windows_volumes()
                         name: tokens[1].split('"')[1],
                         type: tokens[2].split('"')[1],
                         size: tokens[3].split('"')[1],
-                        removable: tokens[4].split('"')[1] == 'Removable'
+                        sizeremaining: tokens[4].split('"')[1],
+                        removable: tokens[5].split('"')[1] == 'Removable',
+                        cdrom: tokens[5].split('"')[1] == 'CD-ROM'
                     };
             }
         }
@@ -431,24 +440,32 @@ function windows_volumes()
                     ret[key].volumeStatus = tokens[1].split('"')[1];
                     ret[key].protectionStatus = tokens[2].split('"')[1];
                     try {
-                        var str = '';
-                        var foundMarkedLine = false;
-                        var password = '';
-                        var child = require('child_process').execFile(process.env['windir'] + '\\system32\\cmd.exe', ['/c', 'manage-bde -protectors -get ', tokens[0].split('"')[1], ' -Type recoverypassword'], {});
-                        child.stdout.on('data', function (chunk) { str += chunk.toString(); });
-                        child.stderr.on('data', function (chunk) { str += chunk.toString(); });
-                        child.waitExit();
-                        var lines = str.split(/\r?\n/);
-                        for (var i = 0; i < lines.length; i++) {
-                            if (lines[i].trim() !== '' && lines[i].includes('Password:') && !lines[i].includes('Numerical Password:')) {
-                                if (i + 1 < lines.length && lines[i + 1].trim() !== '') {
-                                    password = lines[i + 1].trim();
+                        var foundIDMarkedLine = false, foundMarkedLine = false, identifier = '', password = '';
+                        var keychild = require('child_process').execFile(process.env['windir'] + '\\system32\\cmd.exe', ['/c', 'manage-bde -protectors -get ', tokens[0].split('"')[1], ' -Type recoverypassword'], {});
+                        keychild.stdout.str = ''; keychild.stdout.on('data', function (c) { this.str += c.toString(); });
+                        keychild.waitExit();
+                        var lines = keychild.stdout.str.trim().split('\r\n');
+                        for (var x = 0; x < lines.length; x++) { // Loop each line
+                            var abc = lines[x].trim();
+                            var englishidpass = (abc !== '' && abc.includes('Numerical Password:')); // English ID
+                            var germanidpass = (abc !== '' && abc.includes('Numerisches Kennwort:')); // German ID
+                            var frenchidpass = (abc !== '' && abc.includes('Mot de passe num')); // French ID
+                            var englishpass = (abc !== '' && abc.includes('Password:') && !abc.includes('Numerical Password:')); // English Password
+                            var germanpass = (abc !== '' && abc.includes('Kennwort:') && !abc.includes('Numerisches Kennwort:')); // German Password
+                            var frenchpass = (abc !== '' && abc.includes('Mot de passe :') && !abc.includes('Mot de passe num')); // French Password
+                            if (englishidpass || germanidpass || frenchidpass|| englishpass || germanpass || frenchpass) {
+                                var nextline = lines[x + 1].trim();
+                                if (x + 1 < lines.length && (nextline !== '' && (nextline.startsWith('ID:') || nextline.startsWith('ID :')) )) {
+                                    identifier = nextline.replace('ID:','').replace('ID :', '').trim();
+                                    foundIDMarkedLine = true;
+                                }else if (x + 1 < lines.length && nextline !== '') {
+                                    password = nextline;
                                     foundMarkedLine = true;
                                 }
-                                if (foundMarkedLine) break;
                             }
                         }
-                        ret[key].recoveryPassword = (foundMarkedLine ? password : '');
+                        ret[key].identifier = (foundIDMarkedLine ? identifier : ''); // Set Bitlocker Identifier
+                        ret[key].recoveryPassword = (foundMarkedLine ? password : ''); // Set Bitlocker Password
                     } catch(ex) { }
                 }
             }
@@ -546,7 +563,7 @@ function windows_identifiers()
 }
 function macos_identifiers()
 {
-    var ret = { identifiers: {} };
+    var ret = { identifiers: {}, darwin: {} };
     var child;
 
     child = require('child_process').execFile('/bin/sh', ['sh']);
@@ -585,12 +602,94 @@ function macos_identifiers()
     child.waitExit();
     ret.identifiers.cpu_name = child.stdout.str.trim();
 
+    child = require('child_process').execFile('/bin/sh', ['sh']);
+    child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
+    child.stdin.write('system_profiler SPMemoryDataType\nexit\n');
+    child.waitExit();
+    var lines = child.stdout.str.trim().split('\n');
+    if(lines.length > 0) {
+        const memorySlots = [];
+        if(lines[2].trim().includes('Memory Slots:')) { // OLD MACS WITH SLOTS
+            var memorySlots1 = child.stdout.str.split(/\n{2,}/).slice(3);
+            memorySlots1.forEach(function(slot,index) {
+                var lines = slot.split('\n');
+                if(lines.length == 1){ // start here
+                    if(lines[0].trim()!=''){
+                        var slotObj = { DeviceLocator: lines[0].trim().replace(/:$/, '') }; // Initialize name as an empty string
+                        var nextline = memorySlots1[index+1].split('\n');
+                        nextline.forEach(function(line) {
+                            if (line.trim() !== '') {
+                                var parts = line.split(':');
+                                var key = parts[0].trim();
+                                var value = parts[1].trim();
+                                value = (key == 'Part Number' || key == 'Manufacturer') ? hexToAscii(parts[1].trim()) : parts[1].trim();
+                                slotObj[key] = value; // Store attribute in the slot object
+                            }
+                        });
+                        memorySlots.push(slotObj);
+                    }
+                }
+            });
+        } else { // NEW MACS WITHOUT SLOTS
+            memorySlots.push({ DeviceLocator: "Onboard Memory", Size: lines[2].split(":")[1].trim(), PartNumber: lines[3].split(":")[1].trim(), Manufacturer: lines[4].split(":")[1].trim() })
+        }
+        ret.darwin.memory = memorySlots;
+    }
+
+    child = require('child_process').execFile('/bin/sh', ['sh']);
+    child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
+    child.stdin.write('diskutil info -all\nexit\n');
+    child.waitExit();
+    var sections = child.stdout.str.split('**********\n');
+    if(sections.length > 0){
+        var devices = [];
+        for (var i = 0; i < sections.length; i++) {
+            var lines = sections[i].split('\n');
+            var deviceInfo = {};
+            var wholeYes = false;
+            var physicalYes = false;
+            var oldmac = false;
+            for (var j = 0; j < lines.length; j++) {
+                var keyValue = lines[j].split(':');
+                var key = keyValue[0].trim();
+                var value = keyValue[1] ? keyValue[1].trim() : '';
+                if (key === 'Virtual') oldmac = true;
+                if (key === 'Whole' && value === 'Yes') wholeYes = true;
+                if (key === 'Virtual' && value === 'No') physicalYes = true;
+                if(value && key === 'Device / Media Name'){
+                    deviceInfo['Caption'] = value;
+                }
+                if(value && key === 'Disk Size'){
+                    deviceInfo['Size'] = value.split(' ')[0] + ' ' + value.split(' ')[1];
+                }
+            }
+            if (wholeYes) {
+                if (oldmac) {
+                    if (physicalYes) devices.push(deviceInfo);
+                } else {
+                    devices.push(deviceInfo);
+                }
+            }
+        }
+        ret.identifiers.storage_devices = devices;
+    }
 
     trimIdentifiers(ret.identifiers);
 
-
     child = null;
     return (ret);
+}
+
+function hexToAscii(hexString) {
+    if(!hexString.startsWith('0x')) return hexString.trim();
+    hexString = hexString.startsWith('0x') ? hexString.slice(2) : hexString;
+    var str = '';
+    for (var i = 0; i < hexString.length; i += 2) {
+        var hexPair = hexString.substr(i, 2);
+        str += String.fromCharCode(parseInt(hexPair, 16));
+    }
+    str = str.replace(/[\u007F-\uFFFF]/g, ''); // Remove characters from 0x0080 to 0xFFFF
+    return str.trim();
 }
 
 function win_chassisType()

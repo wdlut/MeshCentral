@@ -654,22 +654,6 @@ var meshCoreObj = { action: 'coreinfo', value: (require('MeshAgent').coreHash ? 
 // Get the operating system description string
 try { require('os').name().then(function (v) { meshCoreObj.osdesc = v; meshCoreObjChanged(); }); } catch (ex) { }
 
-// Get Volumes and BitLocker if Windows
-try {
-    if (process.platform == 'win32'){
-        if (require('computer-identifiers').volumes_promise != null){
-            var p = require('computer-identifiers').volumes_promise();
-            p.then(function (res){
-                meshCoreObj.volumes = res;
-                meshCoreObjChanged();
-            });
-        }else if (require('computer-identifiers').volumes != null){
-            meshCoreObj.volumes = require('computer-identifiers').volumes();
-            meshCoreObjChanged();
-        }
-    }
-} catch(e) { }
-
 // Setup logged in user monitoring (THIS IS BROKEN IN WIN7)
 try {
     var userSession = require('user-sessions');
@@ -1230,8 +1214,11 @@ function handleServerCommand(data) {
                                         ipr.message = data.msg;
                                         ipr.username = data.username;
                                         if (data.realname && (data.realname != '')) { ipr.username = data.realname; }
+                                        ipr.timeout = (typeof data.timeout === 'number' ? data.timeout : 120000);
                                         global._clientmessage = ipr.then(function (img) {
-                                            this.messagebox = require('win-dialog').create(this.title, this.message, this.username, { timeout: 120000, b64Image: img.split(',').pop(), background: color_options.background, foreground: color_options.foreground });
+                                            var options = { b64Image: img.split(',').pop(), background: color_options.background, foreground: color_options.foreground }
+                                            if (this.timeout != 0) { options.timeout = this.timeout; }
+                                            this.messagebox = require('win-dialog').create(this.title, this.message, this.username, options);
                                             this.__childPromise.addMessage = this.messagebox.addMessage.bind(this.messagebox);
                                             return (this.messagebox);
                                         });
@@ -1300,6 +1287,41 @@ function handleServerCommand(data) {
                             try { process.kill(data.value); } catch (ex) { sendConsoleText("pskill: " + JSON.stringify(ex)); }
                         }
                         break;
+                    }
+                    case 'service': {
+                        // return information about the service
+                        try {
+                            var service = require('service-manager').manager.getService(data.serviceName);
+                            if (service != null) {
+                                var reply = {
+                                    name: (service.name ? service.name : ''),
+                                    status: (service.status ? service.status : ''),
+                                    startType: (service.startType ? service.startType : ''),
+                                    failureActions: (service.failureActions ? service.failureActions : ''),
+                                    installedDate: (service.installedDate ? service.installedDate : ''),
+                                    installedBy: (service.installedBy ? service.installedBy : '') ,
+                                    user: (service.user ? service.user : '')
+                                };
+                                if(reply.installedBy.indexOf('S-1-5') != -1) {
+                                    var cmd = "(Get-WmiObject -Class win32_userAccount -Filter \"SID='"+service.installedBy+"'\").Caption";
+                                    var replydata = "";
+                                    var pws = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', '-'], {});
+                                    pws.descriptorMetadata = 'UserSIDPowerShell';
+                                    pws.stdout.on('data', function (c) { replydata += c.toString(); });
+                                    pws.stderr.on('data', function (c) { replydata += c.toString(); });
+                                    pws.stdin.write(cmd + '\r\nexit\r\n');
+                                    pws.on('exit', function () { 
+                                        if (replydata != "") reply.installedBy = replydata;
+                                        mesh.SendCommand({ action: 'msg', type: 'service', value: JSON.stringify(reply), sessionid: data.sessionid });
+                                        delete pws;
+                                    });
+                                } else {
+                                    mesh.SendCommand({ action: 'msg', type: 'service', value: JSON.stringify(reply), sessionid: data.sessionid });
+                                }
+                            }
+                        } catch (ex) { 
+                            mesh.SendCommand({ action: 'msg', type: 'service', error: ex, sessionid: data.sessionid })
+                        }
                     }
                     case 'services': {
                         // Return the list of installed services
@@ -1918,30 +1940,27 @@ function getSystemInformation(func) {
             } catch (ex) { }
         }
         results.hardware.agentvers = process.versions;
+        results.hardware.network = { dns: require('os').dns() }; 
         replaceSpacesWithUnderscoresRec(results);
         var hasher = require('SHA384Stream').create();
-        // results.hash = hasher.syncHash(JSON.stringify(results)).toString('hex');
-        // func(results);
 
-        
         // On Windows platforms, get volume information - Needs more testing.
         if (process.platform == 'win32')
         {
             results.pendingReboot = require('win-info').pendingReboot(); // Pending reboot
-
             if (require('computer-identifiers').volumes_promise != null)
             {
                 var p = require('computer-identifiers').volumes_promise();
                 p.then(function (res)
                 {
-                    results.hardware.windows.volumes = res;
+                    results.hardware.windows.volumes = cleanGetBitLockerVolumeInfo(res);
                     results.hash = hasher.syncHash(JSON.stringify(results)).toString('hex');
                     func(results);
                 });
             }
             else if (require('computer-identifiers').volumes != null)
             {
-                results.hardware.windows.volumes = require('computer-identifiers').volumes();
+                results.hardware.windows.volumes = cleanGetBitLockerVolumeInfo(require('computer-identifiers').volumes());
                 results.hash = hasher.syncHash(JSON.stringify(results)).toString('hex');
                 func(results);
             }
@@ -1966,11 +1985,10 @@ function getDirectoryInfo(reqpath) {
     if (((reqpath == undefined) || (reqpath == '')) && (process.platform == 'win32')) {
         // List all the drives in the root, or the root itself
         var results = null;
-        try { results = fs.readDrivesSync(); } catch (ex) { } // TODO: Anyway to get drive total size and free space? Could draw a progress bar.
+        try { results = fs.readDrivesSync(); } catch (ex) { }
         if (results != null) {
             for (var i = 0; i < results.length; ++i) {
-                var drive = { n: results[i].name, t: 1 };
-                if (results[i].type == 'REMOVABLE') { drive.dt = 'removable'; } // TODO: See if this is USB/CDROM or something else, we can draw icons.
+                var drive = { n: results[i].name, t: 1, dt: results[i].type, s: (results[i].size ? results[i].size : 0), f: (results[i].free ? results[i].free : 0) };
                 response.dir.push(drive);
             }
         }
@@ -2578,7 +2596,7 @@ function tunnel_kvm_end()
                 this.httprequest.desktop.kvm.users.splice(i, 1);
                 this.httprequest.desktop.kvm.connectionBar.removeAllListeners('close');
                 this.httprequest.desktop.kvm.connectionBar.close();
-                this.httprequest.desktop.kvm.connectionBar = require('notifybar-desktop')(this.httprequest.privacybartext.replace('{0}', this.httprequest.desktop.kvm.rusers.join(', ')).replace('{1}', this.httprequest.desktop.kvm.users.join(', ')), require('MeshAgent')._tsid, color_options);
+                this.httprequest.desktop.kvm.connectionBar = require('notifybar-desktop')(this.httprequest.privacybartext.replace('{0}', this.httprequest.desktop.kvm.rusers.join(', ')).replace('{1}', this.httprequest.desktop.kvm.users.join(', ')).replace(/'/g, "\\'\\"), require('MeshAgent')._tsid, color_options);
                 this.httprequest.desktop.kvm.connectionBar.httprequest = this.httprequest;
                 this.httprequest.desktop.kvm.connectionBar.on('close', function ()
                 {
@@ -2647,7 +2665,7 @@ function kvm_consentpromise_resolved(always)
         }
         try
         {
-            this.ws.httprequest.desktop.kvm.connectionBar = require('notifybar-desktop')(this.ws.httprequest.privacybartext.replace('{0}', this.ws.httprequest.desktop.kvm.rusers.join(', ')).replace('{1}', this.ws.httprequest.desktop.kvm.users.join(', ')), require('MeshAgent')._tsid, color_options);
+            this.ws.httprequest.desktop.kvm.connectionBar = require('notifybar-desktop')(this.ws.httprequest.privacybartext.replace('{0}', this.ws.httprequest.desktop.kvm.rusers.join(', ')).replace('{1}', this.ws.httprequest.desktop.kvm.users.join(', ')).replace(/'/g, "\\'\\"), require('MeshAgent')._tsid, color_options);
             MeshServerLogEx(31, null, "Remote Desktop Connection Bar Activated/Updated (" + this.ws.httprequest.remoteaddr + ")", this.ws.httprequest);
         } catch (ex)
         {
@@ -3033,7 +3051,7 @@ function onTunnelData(data)
                         }
                         try
                         {
-                            this.httprequest.desktop.kvm.connectionBar = require('notifybar-desktop')(this.httprequest.privacybartext.replace('{0}', this.httprequest.desktop.kvm.rusers.join(', ')).replace('{1}', this.httprequest.desktop.kvm.users.join(', ')), require('MeshAgent')._tsid, color_options);
+                            this.httprequest.desktop.kvm.connectionBar = require('notifybar-desktop')(this.httprequest.privacybartext.replace('{0}', this.httprequest.desktop.kvm.rusers.join(', ')).replace('{1}', this.httprequest.desktop.kvm.users.join(', ')).replace(/'/g, "\\'\\"), require('MeshAgent')._tsid, color_options);
                             MeshServerLogEx(31, null, "Remote Desktop Connection Bar Activated/Updated (" + this.httprequest.remoteaddr + ")", this.httprequest);
                         } catch (ex) {
                             MeshServerLogEx(32, null, "Remote Desktop Connection Bar Failed or not Supported (" + this.httprequest.remoteaddr + ")", this.httprequest);
@@ -3420,6 +3438,24 @@ function onTunnelData(data)
                     this.zip.on('progress', require('events').moderated(function (name, p) { this.xws.write(Buffer.from(JSON.stringify({ action: 'dialogmessage', msg: 'zippingFile', file: ((process.platform == 'win32') ? (name.split('/').join('\\')) : name), progress: p }))); }, 1000));
                     this.zip.pipe(out);
                     break;
+                case 'unzip':
+                    if (this.unzip != null) return; // Unzip operating is currently running, exit now.
+                    this.unzip = require('zip-reader').read(cmd.input);
+                    this.unzip._dest = cmd.dest;
+                    this.unzip.xws = this;
+                    this.unzip.then(function (zipped) {
+                        this.xws.write(Buffer.from(JSON.stringify({ action: 'dialogmessage', msg: 'unzipping' })));
+                        zipped.xws = this.xws;
+                        zipped.extractAll(this._dest).then(function () { // finished extracting
+                            zipped.xws.write(Buffer.from(JSON.stringify({ action: 'dialogmessage', msg: null })));
+                            zipped.xws.write(Buffer.from(JSON.stringify({ action: 'refresh' })));
+                            delete zipped.xws.unzip;
+                        }, function (e) { // error extracting
+                            zipped.xws.write(Buffer.from(JSON.stringify({ action: 'dialogmessage', msg: 'unziperror', error: e })));
+                            delete zipped.xws.unzip;
+                        });
+                    }, function (e) { this.xws.write(Buffer.from(JSON.stringify({ action: 'dialogmessage', msg: 'unziperror', error: e }))); delete this.xws.unzip });
+                    break;
                 case 'cancel':
                     // Cancel zip operation if present
                     try { this.zipcancel = true; this.zip.cancel(function () { }); } catch (ex) { }
@@ -3759,11 +3795,11 @@ function processConsoleCommand(cmd, args, rights, sessionid) {
         var response = null;
         switch (cmd) {
             case 'help': { // Displays available commands
-                var fin = '', f = '', availcommands = 'domain,translations,agentupdate,errorlog,msh,timerinfo,coreinfo,coredump,service,fdsnapshot,fdcount,startupoptions,alert,agentsize,versions,help,info,osinfo,args,print,type,dbkeys,dbget,dbset,dbcompact,eval,parseuri,httpget,wslist,plugin,wsconnect,wssend,wsclose,notify,ls,ps,kill,netinfo,location,power,wakeonlan,setdebug,smbios,rawsmbios,toast,lock,users,openurl,getscript,getclip,setclip,log,av,cpuinfo,sysinfo,apf,scanwifi,wallpaper,agentmsg,task,uninstallagent,display';
+                var fin = '', f = '', availcommands = 'domain,translations,agentupdate,errorlog,msh,timerinfo,coreinfo,coreinfoupdate,coredump,service,fdsnapshot,fdcount,startupoptions,alert,agentsize,versions,help,info,osinfo,args,print,type,dbkeys,dbget,dbset,dbcompact,eval,parseuri,httpget,wslist,plugin,wsconnect,wssend,wsclose,notify,ls,ps,kill,netinfo,location,power,wakeonlan,setdebug,smbios,rawsmbios,toast,lock,users,openurl,getscript,getclip,setclip,log,av,cpuinfo,sysinfo,apf,scanwifi,wallpaper,agentmsg,task,uninstallagent,display';
                 if (require('os').dns != null) { availcommands += ',dnsinfo'; }
                 try { require('linux-dhcp'); availcommands += ',dhcp'; } catch (ex) { }
                 if (process.platform == 'win32') {
-                    availcommands += ',cs,wpfhwacceleration,uac,volumes';
+                    availcommands += ',bitlocker,cs,wpfhwacceleration,uac,volumes,rdpport';
                     if (bcdOK()) { availcommands += ',safemode'; }
                     if (require('notifybar-desktop').DefaultPinned != null) { availcommands += ',privacybar'; }
                     try { require('win-utils'); availcommands += ',taskbar'; } catch (ex) { }
@@ -3924,6 +3960,17 @@ function processConsoleCommand(cmd, args, rights, sessionid) {
             case 'volumes':
                 response = JSON.stringify(require('win-volumes').getVolumes(), null, 1);
                 break;
+            case 'bitlocker':
+                if (process.platform == 'win32') {
+                    if (require('computer-identifiers').volumes_promise != null) {
+                        var p = require('computer-identifiers').volumes_promise();
+                        p.then(function (res) { sendConsoleText(JSON.stringify(cleanGetBitLockerVolumeInfo(res), null, 1), this.session); });
+                        response = "Please wait...";
+                    } else if (require('computer-identifiers').volumes != null) {
+                        sendConsoleText(JSON.stringify(cleanGetBitLockerVolumeInfo(require('computer-identifiers').volumes()), null, 1), this.session);
+                    }
+                }
+                break;
             case 'dhcp': // This command is only supported on Linux, this is because Linux does not give us the DNS suffix for each network adapter independently so we have to ask the DHCP server.
                 {
                     try { require('linux-dhcp'); } catch (ex) { response = 'Unknown command "dhcp", type "help" for list of available commands.'; break; }
@@ -4047,6 +4094,44 @@ function processConsoleCommand(cmd, args, rights, sessionid) {
             case 'timerinfo':
                 response = require('ChainViewer').getTimerInfo();
                 break;
+            case 'rdpport':
+                if (process.platform != 'win32') {
+                    response = 'Unknown command "rdpport", type "help" for list of available commands.';
+                    return;
+                }
+                if (args['_'].length == 0) {
+                    response = 'Proper usage: rdpport [get|default|PORTNUMBER]';
+                } else {
+                    switch (args['_'][0].toLocaleLowerCase()) {
+                        case 'get':
+                            var rdpport = require('win-registry').QueryKey(require('win-registry').HKEY.LocalMachine, 'System\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp', 'PortNumber');
+                            response = "Current RDP Port Set To: " + rdpport + '\r\n';
+                            break;
+                        case 'default':
+                            try {
+                                require('win-registry').WriteKey(require('win-registry').HKEY.LocalMachine, 'System\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp', 'PortNumber', 3389);
+                                response = 'RDP Port Set To 3389, Please Dont Forget To Restart Your Computer To Fully Apply';
+                            } catch (ex) {
+                                response = 'Unable to Set RDP Port To: 3389';
+                            }
+                            break;
+                        default:
+                            if (isNaN(parseFloat(args['_'][0]))){
+                                response = 'Proper usage: rdpport [get|default|PORTNUMBER]';
+                            } else if(parseFloat(args['_'][0]) < 0 || args['_'][0] > 65535) {
+                                response = 'RDP Port Must Be More Than 0 And Less Than 65535';
+                            } else {
+                                try {
+                                    require('win-registry').WriteKey(require('win-registry').HKEY.LocalMachine, 'System\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp', 'PortNumber', parseFloat(args['_'][0]));
+                                    response = 'RDP Port Set To ' + args['_'][0] + ', Please Dont Forget To Restart Your Computer To Fully Apply';
+                                } catch (ex) {
+                                    response = 'Unable to Set RDP Port To: '+args['_'][0];
+                                }
+                            }
+                            break;
+                    }
+                }
+                break;
             case 'find':
                 if (args['_'].length <= 1) {
                     response = "Proper usage:\r\n  find root criteria [criteria2] [criteria n...]";
@@ -4066,7 +4151,8 @@ function processConsoleCommand(cmd, args, rights, sessionid) {
                 break;
             }
             case 'coreinfoupdate': {
-                sendPeriodicServerUpdate();
+                sendPeriodicServerUpdate(null, true);
+                response = "Core Info Update Requested"
                 break;
             }
             case 'agentmsg': {
@@ -4179,12 +4265,12 @@ function processConsoleCommand(cmd, args, rights, sessionid) {
                 break;
             case 'unzip':
                 if (args['_'].length == 0) {
-                    response = "Proper usage: unzip input, destination"; // Display usage
+                    response = "Proper usage: unzip input,destination"; // Display usage
                 } else {
                     var p = args['_'].join(' ').split(',');
-                    if (p.length != 2) { response = "Proper usage: unzip input, destination"; break; } // Display usage
-                    var prom = require('zip-reader').read(p[0]);
-                    prom._dest = p[1];
+                    if (p.length != 2) { response = "Proper usage: unzip input,destination"; break; } // Display usage
+                    var prom = require('zip-reader').read(p[0].trim());
+                    prom._dest = p[1].trim();
                     prom.self = this;
                     prom.sessionid = sessionid;
                     prom.then(function (zipped) {
@@ -4665,8 +4751,11 @@ function processConsoleCommand(cmd, args, rights, sessionid) {
             }
             case 'sysinfo': { // Return system information
                 getSystemInformation(function (results, err) {
-                    if (results == null) { sendConsoleText(err, this.sessionid); } else {
+                    if (results == null) {
+                        sendConsoleText(err, this.sessionid);
+                    } else {
                         sendConsoleText(JSON.stringify(results, null, 1), this.sessionid);
+                        mesh.SendCommand({ action: 'sysinfo', sessionid: this.sessionid, data: results });
                     }
                 });
                 break;
@@ -4680,6 +4769,7 @@ function processConsoleCommand(cmd, args, rights, sessionid) {
                 var oldNodeId = db.Get('OldNodeId');
                 if (oldNodeId != null) { response += '\r\nOldNodeID: ' + oldNodeId + '.'; }
                 if (process.platform == 'linux' || process.platform == 'freebsd') { response += '\r\nX11 support: ' + require('monitor-info').kvm_x11_support + '.'; }
+                response += '\r\nApplication Location: ' + process.cwd();
                 //response += '\r\Debug Console: ' + debugConsole + '.';
                 break;
             }
@@ -5591,6 +5681,7 @@ function sendNetworkUpdate(force) {
 function sendPeriodicServerUpdate(flags, force) {
     if (meshServerConnectionState == 0) return; // Not connected to server, do nothing.
     if (!flags) { flags = 0xFFFFFFFF; }
+    if (!force) { force = false; }
 
     // If we have a connected MEI, get Intel ME information
     if ((flags & 1) && (amt != null) && (amt.state == 2)) {
@@ -5623,6 +5714,7 @@ function sendPeriodicServerUpdate(flags, force) {
                 });
             } catch (ex) { }
         }
+
         // Get Defender for Windows Server
         try { 
             var d = require('win-info').defender();
@@ -5630,7 +5722,7 @@ function sendPeriodicServerUpdate(flags, force) {
                 meshCoreObj.defender = res;
                 meshCoreObjChanged();
             });
-        } catch (ex){ }
+        } catch (ex) { }
     }
 
     // Send available data right now
@@ -5642,6 +5734,26 @@ function sendPeriodicServerUpdate(flags, force) {
             mesh.SendCommand(meshCoreObj);
         }
     }
+}
+
+// Sort the names in an object
+function sortObject(obj) { return Object.keys(obj).sort().reduce(function(a, v) { a[v] = obj[v]; return a; }, {}); }
+
+// Fix the incoming data and cut down how much data we use
+function cleanGetBitLockerVolumeInfo(volumes) {
+    for (var i in volumes) {
+        const v = volumes[i];
+        if (typeof v.size == 'string') { v.size = parseInt(v.size); }
+        if (typeof v.sizeremaining == 'string') { v.sizeremaining = parseInt(v.sizeremaining); }
+        if (v.identifier == '') { delete v.identifier; }
+        if (v.name == '') { delete v.name; }
+        if (v.removable != true) { delete v.removable; }
+        if (v.cdrom != true) { delete v.cdrom; }
+        if (v.protectionStatus == 'On') { v.protectionStatus = true; } else { delete v.protectionStatus; }
+        if (v.volumeStatus == 'FullyDecrypted') { delete v.volumeStatus; }
+        if (v.recoveryPassword == '') { delete v.recoveryPassword; }
+    }
+    return sortObject(volumes);
 }
 
 // Once we are done collecting all the data, send to server if needed
