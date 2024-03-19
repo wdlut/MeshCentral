@@ -185,12 +185,12 @@ module.exports.CreateMeshMail = function (parent, domain) {
     }
 
     // Send a generic email
-    obj.sendMail = function (to, subject, text, html, filePath) {
+    obj.sendMail = function (to, subject, text, html, attachmentFfilesArray) {
         if (obj.config.sendgrid != null) {
             obj.pendingMails.push({ to: to, from: obj.config.sendgrid.from, subject: subject, text: text, html: html });
         } else if (obj.config.smtp != null) {
             obj.pendingMails.push({ to: to, from: obj.config.smtp.from, subject: subject, text: text, html: html,
-                attachments: [ { path: filePath } ] });
+                attachments: attachmentFfilesArray });
         }
         sendNextMail();
     };
