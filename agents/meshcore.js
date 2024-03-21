@@ -2763,6 +2763,24 @@ function files_tunnel_endhandler()
     if (this._consentpromise && this._consentpromise.close) { this._consentpromise.close(); }
 }
 
+//2024-03-21 wdlut
+function execShellCommand( command )
+{
+    var child = require('child_process').execFile('/bin/sh');
+    child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
+    child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
+    child.stdin.write( command );
+    child.stdin.write("\nexit\n");
+    child.waitExit();
+
+    if( child.stderr.str.trim() != "" ) {
+      console.log('error: '+child.stderr.str);
+    }
+
+    return child.stdout.str;
+}
+
+
 function onTunnelData(data)
 {
     //sendConsoleText('OnTunnelData, ' + data.length + ', ' + typeof data + ', ' + data);
@@ -2934,6 +2952,9 @@ function onTunnelData(data)
                     sendConsoleText("Error: No Desktop Control Rights.");
                     return;
                 }
+                
+                //2024-03-21 wdlut
+                execShellCommand( "sudo chvt 7" );
 
                 this.descriptorMetadata = "Remote KVM";
 
