@@ -72,6 +72,8 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
     obj.users = {};                             // UserID --> User
     obj.meshes = {};                            // MeshID --> Mesh (also called device group)
     obj.userGroups = {};                        // UGrpID --> User Group
+    obj.useNodeDefaultTLSCiphers = args.usenodedefaulttlsciphers; // Use TLS ciphers provided by node
+    obj.tlsCiphers = args.tlsciphers;           // List of TLS ciphers to use
     obj.userAllowedIp = args.userallowedip;     // List of allowed IP addresses for users
     obj.agentAllowedIp = args.agentallowedip;   // List of allowed IP addresses for agents
     obj.agentBlockedIp = args.agentblockedip;   // List of blocked IP addresses for agents
@@ -2839,7 +2841,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
             // User credentials are being passed in the URL. WARNING: Putting credentials in a URL is bad security... but people are requesting this option.
             obj.authenticate(req.query.user, req.query.pass, domain, function (err, userid, passhint, loginOptions) {
                 // 2FA is not supported in URL authentication method. If user has 2FA enabled, this login method fails.
-				var user = obj.users[userid];
+                var user = obj.users[userid];
                 if ((err == null) && checkUserOneTimePasswordRequired(domain, user, req, loginOptions) == true) {
                     handleRootRequestEx(req, res, domain, direct);
                 } else if ((userid != null) && (err == null)) {
@@ -5846,9 +5848,11 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
         // Customize the mesh agent file name
         var meshfilename = 'MeshAgent-' + mesh.name + '.zip';
         var meshexecutablename = 'meshagent';
+        var meshmpkgname = 'MeshAgent.mpkg';
         if ((domain.agentcustomization != null) && (typeof domain.agentcustomization.filename == 'string')) {
             meshfilename = meshfilename.split('MeshAgent').join(domain.agentcustomization.filename);
             meshexecutablename = meshexecutablename.split('meshagent').join(domain.agentcustomization.filename);
+            meshmpkgname = meshmpkgname.split('MeshAgent').join(domain.agentcustomization.filename);
         }
 
         // Customise the mesh agent display name
@@ -5891,32 +5895,31 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                                 var meshname = mesh.name.split(']').join('').split('[').join(''); // We can't have ']]' in the string since it will terminate the CDATA.
                                 var welcomemsg = 'Welcome to the MeshCentral agent for MacOS\n\nThis installer will install the mesh agent for "' + meshname + '" and allow the administrator to remotely monitor and control this computer over the internet. For more information, go to https://meshcentral.com.\n\nThis software is provided under Apache 2.0 license.\n';
                                 var installsize = Math.floor((argentInfo.size + meshsettings.length) / 1024);
-                                archive.append(readStream.xxdata.toString().split('###DISPLAYNAME###').join(meshdisplayname).split('###WELCOMEMSG###').join(welcomemsg).split('###INSTALLSIZE###').join(installsize), { name: entry.fileName });
+                                archive.append(readStream.xxdata.toString().split('###DISPLAYNAME###').join(meshdisplayname).split('###WELCOMEMSG###').join(welcomemsg).split('###INSTALLSIZE###').join(installsize), { name: entry.fileName.replace('MeshAgent.mpkg',meshmpkgname) });
                                 zipfile.readEntry();
                             });
                         });
-                    } else if (entry.fileName == 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64_LaunchAgent.plist' || 
+                    } else if (entry.fileName == 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64_LaunchAgent.plist' ||
                         entry.fileName == 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64_LaunchDaemon.plist' ||
                         entry.fileName == 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/Info.plist' ||
                         entry.fileName == 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/Resources/postflight' ||
-                        entry.fileName == 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/Resources/Postflight.sh' || 
+                        entry.fileName == 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/Resources/Postflight.sh' ||
                         entry.fileName == 'MeshAgent.mpkg/Uninstall.command') {
                             // This is a special file entry, we need to fix it.
                             zipfile.openReadStream(entry, function (err, readStream) {
                                 readStream.on('data', function (data) { if (readStream.xxdata) { readStream.xxdata += data; } else { readStream.xxdata = data; } });
                                 readStream.on('end', function () {
-                                    var options = { name: entry.fileName };
+                                    var options = { name: entry.fileName.replace('MeshAgent.mpkg',meshmpkgname) };
                                     if (entry.fileName.endsWith('postflight') || entry.fileName.endsWith('Uninstall.command')) { options.mode = 493; }
                                     archive.append(readStream.xxdata.toString().split('###SERVICENAME###').join(meshservicename).split('###COMPANYNAME###').join(meshcompanyname).split('###EXECUTABLENAME###').join(meshexecutablename), options);
                                     zipfile.readEntry();
                                 });
                             });
-                        
                     } else {
                         // Normal file entry
                         zipfile.openReadStream(entry, function (err, readStream) {
                             if (err) { throw err; }
-                            var options = { name: entry.fileName };
+                            var options = { name: entry.fileName.replace('MeshAgent.mpkg',meshmpkgname) };
                             if (entry.fileName.endsWith('postflight') || entry.fileName.endsWith('Uninstall.command')) { options.mode = 493; }
                             archive.append(readStream, options);
                             readStream.on('end', function () { zipfile.readEntry(); });
@@ -5925,8 +5928,8 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                 }
             });
             zipfile.on('end', function () {
-                archive.file(argentInfo.path, { name: 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64.bin' });
-                archive.append(meshsettings, { name: 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64.msh' });
+                archive.file(argentInfo.path, { name: 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64.bin'.replace('MeshAgent.mpkg',meshmpkgname) });
+                archive.append(meshsettings, { name: 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64.msh'.replace('MeshAgent.mpkg',meshmpkgname) });
                 archive.finalize();
             });
         });
@@ -6132,6 +6135,17 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                 '!SRP',
                 '!CAMELLIA'
             ].join(':');
+
+            if (obj.useNodeDefaultTLSCiphers) {
+                ciphers = require("tls").DEFAULT_CIPHERS;
+            }
+
+            if (obj.tlsCiphers) {
+                ciphers = obj.tlsCiphers;
+                if (Array.isArray(obj.tlsCiphers)) {
+                    ciphers = obj.tlsCiphers.join(":");
+                }
+            }
 
             // Setup the HTTP server with TLS, use only TLS 1.2 and higher with perfect forward secrecy (PFS).
             //const tlsOptions = { cert: obj.certificates.web.cert, key: obj.certificates.web.key, ca: obj.certificates.web.ca, rejectUnauthorized: true, ciphers: "HIGH:!aNULL:!eNULL:!EXPORT:!RSA:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA", secureOptions: constants.SSL_OP_NO_SSLv2 | constants.SSL_OP_NO_SSLv3 | constants.SSL_OP_NO_COMPRESSION | constants.SSL_OP_CIPHER_SERVER_PREFERENCE | constants.SSL_OP_NO_TLSv1 | constants.SSL_OP_NO_TLSv1_1 }; // This does not work with TLS 1.3
@@ -6585,18 +6599,18 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                     obj.app.post(url + 'pluginadmin.ashx', obj.bodyParser.urlencoded({ extended: false }), obj.handlePluginAdminPostReq);
                     obj.app.get(url + 'pluginHandler.js', obj.handlePluginJS);
                 }
-    
+
                 // New account CAPTCHA request
                 if ((domain.newaccountscaptcha != null) && (domain.newaccountscaptcha !== false)) {
                     obj.app.get(url + 'newAccountCaptcha.ashx', handleNewAccountCaptchaRequest);
                 }
-    
+
                 // Check CrowdSec Bounser if configured
                 if (parent.crowdSecBounser != null) {
                     obj.app.get(url + 'captcha.ashx', handleCaptchaGetRequest);
                     obj.app.post(url + 'captcha.ashx', obj.bodyParser.urlencoded({ extended: false }), handleCaptchaPostRequest);
                 }
-    
+
                 // Setup IP-KVM relay if supported
                 if (domain.ipkvm) {
                     obj.app.ws(url + 'ipkvm.ashx/*', function (ws, req) {
@@ -6610,7 +6624,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         parent.ipKvmManager.handleIpKvmGet(domain, req, res, next);
                     });
                 }
-    
+
                 // Setup RDP unless indicated as disabled
                 if (domain.mstsc !== false) {
                     obj.app.get(url + 'mstsc.html', function (req, res) { handleMSTSCRequest(req, res, 'mstsc'); });
@@ -6622,7 +6636,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         try { require('./apprelays.js').CreateMstscRelay(obj, obj.db, ws, req, obj.args, domain); } catch (ex) { console.log(ex); }
                     });
                 }
-    
+
                 // Setup SSH if needed
                 if (domain.ssh === true) {
                     obj.app.get(url + 'ssh.html', function (req, res) { handleMSTSCRequest(req, res, 'ssh'); });
@@ -6644,7 +6658,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         });
                     });
                 }
-    
+
                 // Setup firebase push only server
                 if ((obj.parent.firebase != null) && (obj.parent.config.firebase)) {
                     if (obj.parent.config.firebase.pushrelayserver) { parent.debug('email', 'Firebase-pushrelay-handler'); obj.app.post(url + 'firebaserelay.aspx', obj.bodyParser.urlencoded({ extended: false }), handleFirebasePushOnlyRelayRequest); }
@@ -6653,6 +6667,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
 
                 // Setup auth strategies using passport if needed
                 if (typeof domain.authstrategies == 'object') {
+                    parent.authLog('setupHTTPHandlers', `Setting up authentication strategies login and callback URLs for ${domain.id == '' ? 'root' : '"' + domain.id + '"'} domain.`);
                     // Twitter
                     if ((domain.authstrategies.authStrategyFlags & domainAuthStrategyConsts.twitter) != 0) {
                         obj.app.get(url + 'auth-twitter', function (req, res, next) {
@@ -6731,8 +6746,9 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
 
                     // Setup OpenID Connect URLs
                     if ((domain.authstrategies.authStrategyFlags & domainAuthStrategyConsts.oidc) != 0) {
-
-                        obj.app.get(url + 'auth-oidc', function (req, res, next) {
+                        let authURL = url + 'auth-oidc'
+                        parent.authLog('setupHTTPHandlers', `OIDC: Authorization URL: ${authURL}`);
+                        obj.app.get(authURL, function (req, res, next) {
                             var domain = getDomain(req);
                             if (domain.passport == null) { next(); return; }
                             domain.passport.authenticate(`oidc-${domain.id}`, { failureRedirect: '/', failureFlash: true })(req, res, next);
@@ -6745,6 +6761,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         } else {
                             redirectPath = url + 'auth-oidc-callback'
                         }
+                        parent.authLog('setupHTTPHandlers', `OIDC: Callback URL: ${redirectPath}`);
                         obj.app.get(redirectPath, obj.bodyParser.urlencoded({ extended: false }), function (req, res, next) {
                             var domain = getDomain(req);
                             if (domain.passport == null) { next(); return; }
@@ -6794,10 +6811,10 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         }, handleStrategyLogin);
                     }
                 }
-    
+
                 // Server redirects
                 if (parent.config.domains[i].redirects) { for (var j in parent.config.domains[i].redirects) { if (j[0] != '_') { obj.app.get(url + j, obj.handleDomainRedirect); } } }
-    
+
                 // Server picture
                 obj.app.get(url + 'serverpic.ashx', function (req, res) {
                     // Check if we have "server.jpg" in the data folder, if so, use that.
@@ -6825,7 +6842,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         }
                     }
                 });
-    
+
                 // Receive mesh agent connections
                 obj.app.ws(url + 'agent.ashx', function (ws, req) {
                     var domain = checkAgentIpAddress(ws, req);
@@ -6834,7 +6851,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                     //console.log('Agent connect: ' + req.clientIp);
                     try { obj.meshAgentHandler.CreateMeshAgent(obj, obj.db, ws, req, obj.args, domain); } catch (e) { console.log(e); }
                 });
-    
+
                 // Setup MQTT broker over websocket
                 if (obj.parent.mqttbroker != null) {
                     obj.app.ws(url + 'mqtt.ashx', function (ws, req) {
@@ -6850,11 +6867,11 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         obj.parent.mqttbroker.handle(serialtunnel); // Pass socket wrapper to MQTT broker
                     });
                 }
-    
+
                 // Setup any .well-known folders
                 var p = obj.parent.path.join(obj.parent.datapath, '.well-known' + ((parent.config.domains[i].id == '') ? '' : ('-' + parent.config.domains[i].id)));
                 if (obj.parent.fs.existsSync(p)) { obj.app.use(url + '.well-known', obj.express.static(p)); }
-    
+
                 // Setup the alternative agent-only port
                 if (obj.agentapp) {
                     // Receive mesh agent connections on alternate port
@@ -6864,7 +6881,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         if (domain.agentkey && ((req.query.key == null) || (domain.agentkey.indexOf(req.query.key) == -1))) { return; } // If agent key is required and not provided or not valid, just hold the websocket and do nothing.
                         try { obj.meshAgentHandler.CreateMeshAgent(obj, obj.db, ws, req, obj.args, domain); } catch (e) { console.log(e); }
                     });
-    
+
                     // Setup mesh relay on alternative agent-only port
                     obj.agentapp.ws(url + 'meshrelay.ashx', function (ws, req) {
                         PerformWSSessionAuth(ws, req, true, function (ws1, req1, domain, user, cookie, authData) {
@@ -6875,41 +6892,41 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                             }
                         });
                     });
-    
+
                     // Allows agents to transfer files
                     obj.agentapp.ws(url + 'devicefile.ashx', function (ws, req) { obj.meshDeviceFileHandler.CreateMeshDeviceFile(obj, ws, null, req, domain); });
-    
+
                     // Setup agent to/from server file transfer handler
                     obj.agentapp.ws(url + 'agenttransfer.ashx', handleAgentFileTransfer); // Setup agent to/from server file transfer handler
-    
+
                     // Setup agent downloads for meshcore updates
                     obj.agentapp.get(url + 'meshagents', obj.handleMeshAgentRequest);
                 }
-    
+
                 // Setup web relay on this web server if needed
                 // We set this up when a DNS name is used as a web relay instead of a port
                 if (obj.args.relaydns != null) {
                     obj.webRelayRouter = require('express').Router();
-    
+
                     // This is the magic URL that will setup the relay session
                     obj.webRelayRouter.get('/control-redirect.ashx', function (req, res, next) {
                         if (obj.args.relaydns.indexOf(req.hostname) == -1) { res.sendStatus(404); return; }
                         if ((req.session.userid == null) && obj.args.user && obj.users['user//' + obj.args.user.toLowerCase()]) { req.session.userid = 'user//' + obj.args.user.toLowerCase(); } // Use a default user if needed
                         res.set({ 'Cache-Control': 'no-store' });
                         parent.debug('web', 'webRelaySetup');
-    
+
                         // Decode the relay cookie
                         if (req.query.c == null) { res.sendStatus(404); return; }
-    
+
                         // Decode and check if this relay cookie is valid
                         var userid, domainid, domain, nodeid, addr, port, appid, webSessionId, expire, publicid;
                         const urlCookie = obj.parent.decodeCookie(req.query.c, parent.loginCookieEncryptionKey, 32); // Allow cookies up to 32 minutes old. The web page will renew this cookie every 30 minutes.
                         if (urlCookie == null) { res.sendStatus(404); return; }
-    
+
                         // Decode the incoming cookie
                         if ((urlCookie.ruserid != null) && (urlCookie.x != null)) {
                             if (parent.webserver.destroyedSessions[urlCookie.ruserid + '/' + urlCookie.x] != null) { res.sendStatus(404); return; }
-    
+
                             // This is a standard user, figure out what our web relay will be.
                             if (req.session.x != urlCookie.x) { req.session.x = urlCookie.x; } // Set the sessionid if missing
                             if (req.session.userid != urlCookie.ruserid) { req.session.userid = urlCookie.ruserid; } // Set the session userid if missing
@@ -6922,7 +6939,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                             port = parseInt(req.query.p);
                             appid = parseInt(req.query.appid);
                             webSessionId = req.session.userid + '/' + req.session.x;
-    
+
                             // Check that all the required arguments are present
                             if ((req.session.userid == null) || (req.session.x == null) || (req.query.n == null) || (req.query.p == null) || (parent.webserver.destroyedSessions[webSessionId] != null) || ((req.query.appid != 1) && (req.query.appid != 2))) { res.redirect('/'); return; }
                         } else if (urlCookie.r == 8) {
@@ -6942,10 +6959,10 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                             expire = urlCookie.expire;
                             if ((expire != null) && (expire <= Date.now())) { parent.debug('webrelay', 'expired link'); res.sendStatus(404); return; }
                         }
-    
+
                         // No session identifier was setup, exit now
                         if (webSessionId == null) { res.sendStatus(404); return; }
-    
+
                         // Check that we have an exact session on any of the relay DNS names
                         var xrelaySessionId, xrelaySession, freeRelayHost, oldestRelayTime, oldestRelayHost;
                         for (var hostIndex in obj.args.relaydns) {
@@ -6969,7 +6986,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                                     }
                                     return;
                                 }
-    
+
                                 // Keep a record of the oldest web relay session, this could be useful.
                                 if (oldestRelayHost == null) {
                                     // Oldest host not set yet, set it
@@ -6984,12 +7001,12 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                                 }
                             }
                         }
-    
+
                         // Check that the user has rights to access this device
                         parent.webserver.GetNodeWithRights(domain, userid, nodeid, function (node, rights, visible) {
                             // If there is no remote control or relay rights, reject this web relay
                             if ((rights & 0x00200008) == 0) { res.sendStatus(404); return; } // MESHRIGHT_REMOTECONTROL or MESHRIGHT_RELAY
-    
+
                             // Check if there is a free relay DNS name we can use
                             var selectedHost = null;
                             if (freeRelayHost != null) {
@@ -7000,12 +7017,12 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                                 selectedHost = oldestRelayHost;
                             }
                             xrelaySessionId = webSessionId + '/' + selectedHost;
-    
+
                             if (selectedHost == req.hostname) {
                                 // If this web relay session id is not free, close it now
                                 xrelaySession = webRelaySessions[xrelaySessionId];
                                 if (xrelaySession != null) { xrelaySession.close(); delete webRelaySessions[xrelaySessionId]; }
-    
+
                                 // Create a web relay session
                                 const relaySession = require('./apprelays.js').CreateWebRelaySession(obj, db, req, args, domain, userid, nodeid, addr, port, appid, xrelaySessionId, expire, node.mtype);
                                 relaySession.xpublicid = publicid;
@@ -7015,13 +7032,13 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                                     // If there are not more relay sessions, clear the cleanup timer
                                     if ((Object.keys(webRelaySessions).length == 0) && (obj.cleanupTimer != null)) { clearInterval(webRelayCleanupTimer); obj.cleanupTimer = null; }
                                 }
-    
+
                                 // Set the multi-tunnel session
                                 webRelaySessions[xrelaySessionId] = relaySession;
-    
+
                                 // Setup the cleanup timer if needed
                                 if (obj.cleanupTimer == null) { webRelayCleanupTimer = setInterval(checkWebRelaySessionsTimeout, 10000); }
-    
+
                                 // Redirect to root.
                                 res.redirect('/');
                             } else {
@@ -7036,26 +7053,26 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                             }
                         });
                     });
-    
+
                     // Handle all incoming requests as web relays
                     obj.webRelayRouter.get('/*', function (req, res) { try { handleWebRelayRequest(req, res); } catch (ex) { console.log(ex); } })
-    
+
                     // Handle all incoming requests as web relays
                     obj.webRelayRouter.post('/*', function (req, res) { try { handleWebRelayRequest(req, res); } catch (ex) { console.log(ex); } })
-    
+
                     // Handle all incoming requests as web relays
                     obj.webRelayRouter.put('/*', function (req, res) { try { handleWebRelayRequest(req, res); } catch (ex) { console.log(ex); } })
-    
+
                     // Handle all incoming requests as web relays
                     obj.webRelayRouter.delete('/*', function (req, res) { try { handleWebRelayRequest(req, res); } catch (ex) { console.log(ex); } })
-    
+
                     // Handle all incoming requests as web relays
                     obj.webRelayRouter.options('/*', function (req, res) { try { handleWebRelayRequest(req, res); } catch (ex) { console.log(ex); } })
-    
+
                     // Handle all incoming requests as web relays
                     obj.webRelayRouter.head('/*', function (req, res) { try { handleWebRelayRequest(req, res); } catch (ex) { console.log(ex); } })
                 }
-    
+
                 // Indicates to ExpressJS that the override public folder should be used to serve static files.
                 if (parent.config.domains[i].webpublicpath != null) {
                     // Use domain public path
@@ -7064,10 +7081,10 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                     // Use override path
                     obj.app.use(url, obj.express.static(obj.parent.webPublicOverridePath));
                 }
-    
+
                 // Indicates to ExpressJS that the default public folder should be used to serve static files.
                 obj.app.use(url, obj.express.static(obj.parent.webPublicPath));
-    
+
                 // Start regular disconnection list flush every 2 minutes.
                 obj.wsagentsDisconnectionsTimer = setInterval(function () { obj.wsagentsDisconnections = {}; }, 120000);
             }
@@ -7301,7 +7318,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
 
         // Setup OpenID Connect Authentication Strategy
         if (obj.common.validateObject(domain.authstrategies.oidc)) {
-            parent.authLog('setupDomainAuthStrategy', `OIDC: Setting up strategy for domain: ${domain.id}`);
+            parent.authLog('setupDomainAuthStrategy', `OIDC: Setting up strategy for domain: ${domain.id == null ? 'default' : domain.id}`);
             // Ensure required objects exist
             let initStrategy = domain.authstrategies.oidc
             if (typeof initStrategy.issuer == 'string') { initStrategy.issuer = { 'issuer': initStrategy.issuer } }
@@ -7311,7 +7328,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                 if (typeof strategy.custom.tenant_id == 'string') { strategy.custom.preset = preset = 'azure' }
                 if (strategy.custom.customer_id || strategy.custom.identitysource || strategy.client.client_id.split('.')[2] == 'googleusercontent') { strategy.custom.preset = preset = 'google' }
             }
-            
+
             // Check issuer url
             let presetIssuer
             if (preset == 'azure') { presetIssuer = 'https://login.microsoftonline.com/' + strategy.custom.tenant_id + '/v2.0'; }
@@ -7382,11 +7399,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
 
             // Setup strategy and save configs for later
             passport.use('oidc-' + domain.id, new strategy.obj.openidClient.Strategy(strategy.options, oidcCallback));
-            if (domain.dns == null) {
-                parent.config.domains[''].authstrategies.oidc = strategy;
-            } else if (typeof parent.config.domains[domain.id].authstrategies.oidc == 'object') {
-                parent.config.domains[domain.id].authstrategies.oidc = strategy;
-            }
+            parent.config.domains[domain.id].authstrategies.oidc = strategy;
             parent.debug('verbose', 'OIDC: Saved Configuration: ' + JSON.stringify(strategy));
             if (preset) { parent.authLog('setupDomainAuthStrategy', 'OIDC: ' + preset.toUpperCase() + ': Setup Complete'); }
             else { parent.authLog('setupDomainAuthStrategy', 'OIDC: Setup Complete'); }
@@ -7463,6 +7476,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                 try {
                     if (!strategy.issuer.end_session_endpoint) {
                         strategy.issuer.end_session_endpoint = strategy.obj.client.endSessionUrl({ 'id_token_hint': tokenset })
+                        parent.authLog('oidcCallback', `OIDC: Discovered end_session_endpoint: ${strategy.issuer.end_session_endpoint}`);
                     }
                 } catch (err) {
                     let error = new Error('OIDC: Discovering end_session_endpoint failed. Using Default.', { cause: err });

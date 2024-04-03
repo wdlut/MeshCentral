@@ -446,9 +446,12 @@
           "description": "By default, a nice looking 404 error page is displayed when needed. Set this to false to disable it."
         },
         "selfUpdate": {
-          "type": "boolean",
+          "type": [
+            "string",
+            "boolean"
+          ],
           "default": false,
-          "description": "When true, this server will attempt to self-update everyday after midnight."
+          "description": "When set to true, the server will check for a new version and attempt to self-update automatically a bit after midnight local time every day. If set to a specific version such as \"1.1.21\" the server will immediately update to the specified version on startup if it's not already at this version."
         },
         "cleanNpmCacheOnUpdate": {
           "type": "boolean",
@@ -687,6 +690,19 @@
           ],
           "default": false,
           "description": "When true, indicates that a TLS offloader is in front of the MeshCentral server. More typically, set this to the IP address of the reverse proxy or TLS offloader so that IP forwarding headers will be trusted. For example: \"127.0.0.1,192.168.1.100\"."
+        },
+        "useNodeDefaultTLSCiphers": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, get the default TLS ciphers from the node process, rather than using the recommended suites set up by meshcentral"
+        },
+        "tlsCiphers": {
+          "type": [
+            "string",
+            "array"
+          ],
+          "default": null,
+          "description": "Allows user to override the TLS ciphers used by meshcentral by default. If a string, should be a ':' separated list of ciphers to accept. If an array, should be an array of strings representing the ciphers to accept."
         },
         "trustedProxy": {
           "type": "string",
@@ -1191,7 +1207,7 @@
           },
           "trustedCert": {
             "type": "boolean",
-            "default": "This value is normally auto-detected, when set to true, MeshCentral assumes that the TLS certificate comes from a trusted CA and will insure download tools perform certificate checking."
+            "default": "This value is normally auto-detected, when set to true, MeshCentral assumes that the TLS certificate comes from a trusted CA and will ensure download tools perform certificate checking."
           },
           "guestDeviceSharing": {
             "type": [

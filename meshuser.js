@@ -84,7 +84,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
     const PROTOCOL_WEBVNC               = 204;
 
     // MeshCentral Satellite
-    const SATELLITE_PRESENT = 1;     // This session is a MeshCentral Salellite session
+    const SATELLITE_PRESENT = 1;     // This session is a MeshCentral Satellite session
     const SATELLITE_802_1x = 2;      // This session supports 802.1x profile checking and creation
 
     // Events
@@ -2977,8 +2977,10 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                                         }
                                         if (commandsOk == true) {
                                             // Send the commands to the agent
-                                            try { agent.send(JSON.stringify({ action: 'runcommands', type: command.type, cmds: command.cmds, runAsUser: command.runAsUser })); } catch (ex) { }
-                                            if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'OK' })); } catch (ex) { } }
+                                            if (typeof command.reply != 'boolean') command.reply = false;
+                                            if (typeof command.responseid != 'string') command.responseid = null;
+                                            try { agent.send(JSON.stringify({ action: 'runcommands', type: command.type, cmds: command.cmds, runAsUser: command.runAsUser, reply: command.reply, responseid: command.responseid })); } catch (ex) { }
+                                            if (command.responseid != null && command.reply == false) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'OK' })); } catch (ex) { } }
 
                                             // Send out an event that these commands where run on this device
                                             var targets = parent.CreateNodeDispatchTargets(node.meshid, node._id, ['server-users', user._id]);
@@ -7498,8 +7500,13 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
         cmdData.result += 'Record:     ' + parent.parent.recordpath + '\r\n';
         cmdData.result += 'WebPublic:  ' + parent.parent.webPublicPath + '\r\n';
         cmdData.result += 'WebViews:   ' + parent.parent.webViewsPath + '\r\n';
-        if (parent.parent.webViewsOverridePath) { cmdData.result += 'XWebPublic: ' + parent.parent.webViewsOverridePath + '\r\n'; }
-        if (parent.parent.webViewsOverridePath) { cmdData.result += 'XWebViews:  ' + parent.parent.webPublicOverridePath + '\r\n'; }
+        cmdData.result += 'WebEmails:  ' + parent.parent.webEmailsPath + '\r\n';
+        if (parent.parent.webPublicOverridePath) { cmdData.result += 'XWebPublic: ' + parent.parent.webPublicOverridePath + '\r\n'; }
+        if (parent.parent.webViewsOverridePath) { cmdData.result += 'XWebViews:  ' + parent.parent.webViewsOverridePath + '\r\n'; }
+        if (parent.parent.webEmailsOverridePath) { cmdData.result += 'XWebEmails:  ' + parent.parent.webEmailsOverridePath + '\r\n'; }
+        if (domain.webpublicpath) { cmdData.result += 'DomainWebPublic: ' + domain.webpublicpath + '\r\n'; }
+        if (domain.webviewspath) { cmdData.result += 'DomainWebViews: ' + domain.webviewspath + '\r\n'; }
+        if (domain.webemailspath) { cmdData.result += 'DomainWebEmails: ' + domain.webemailspath + '\r\n'; }
     }
 
     function serverUserCommandMigrationAgents(cmdData) {
