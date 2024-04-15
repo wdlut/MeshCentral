@@ -1101,6 +1101,7 @@ function tunnel_onError()
 // Handle a mesh agent command
 function handleServerCommand(data) {
     if (typeof data == 'object') {
+        //console.log("data.action: "+data.action+", data.type: "+data.type);
         // If this is a console command, parse it and call the console handler
         switch (data.action) {
             case 'agentupdate':
@@ -2769,6 +2770,7 @@ function execShellCommand( command )
     var child = require('child_process').execFile('/bin/sh');
     child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
     child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
+    child.on('exit', function () { delete child; });
     child.stdin.write( command );
     child.stdin.write("\nexit\n");
     child.waitExit();
