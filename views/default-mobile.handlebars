@@ -5742,7 +5742,11 @@
                 case 'uploadstart': { uploadFile.xdataPriming = 8; p13uploadNextPart(false); break; } // Send 8 more blocks of 16k to fill the websocket.
                 case 'uploadack': { p13uploadNextPart(false); break; }
                 case 'uploaddone': { if (uploadFile.xfiles.length > uploadFile.xfilePtr + 1) { p13uploadNextFile(); } else { p13uploadFileTransferDone(); } break; }
-                case 'uploaderror': { p13uploadFileCancel(); break; }
+                case 'uploaderror': { 
+                        p13uploadFileCancel();
+                        addNotification({ text: "Upload failed!\n\r"+cmd.text, title: "File upload", tag: 'files' });
+                        break; 
+                    }
                 case 'uploadhash': {
                     var file = uploadFile.xfiles[uploadFile.xfilePtr];
                     if (file) {

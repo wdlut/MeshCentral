@@ -2793,11 +2793,21 @@ function onTunnelData(data)
         if (data[0] == 0) {
             // If data starts with zero, skip the first byte. This is used to escape binary file data from JSON.
             this.httprequest.uploadFileSize += (data.length - 1);
-            try { fs.writeSync(this.httprequest.uploadFile, data, 1, data.length - 1); } catch (ex) { sendConsoleText('FileUpload Error'); this.write(Buffer.from(JSON.stringify({ action: 'uploaderror' }))); return; } // Write to the file, if there is a problem, error out.
+            try { fs.writeSync(this.httprequest.uploadFile, data, 1, data.length - 1); } 
+            catch (ex) { 
+                sendConsoleText('FileUpload Error: '+ex); 
+                this.write(Buffer.from(JSON.stringify({ action: 'uploaderror', text: ex }))); 
+                return; 
+            } // Write to the file, if there is a problem, error out.
         } else {
             // If data does not start with zero, save as-is.
             this.httprequest.uploadFileSize += data.length;
-            try { fs.writeSync(this.httprequest.uploadFile, data); } catch (ex) { sendConsoleText('FileUpload Error'); this.write(Buffer.from(JSON.stringify({ action: 'uploaderror' }))); return; } // Write to the file, if there is a problem, error out.
+            try { fs.writeSync(this.httprequest.uploadFile, data); } 
+            catch (ex) { 
+                sendConsoleText('FileUpload Error: '+ex); 
+                this.write(Buffer.from(JSON.stringify({ action: 'uploaderror', text: ex }))); 
+                return; 
+            } // Write to the file, if there is a problem, error out.
         }
         this.write(Buffer.from(JSON.stringify({ action: 'uploadack', reqid: this.httprequest.uploadFileid }))); // Ask for more data.
         return;
@@ -3408,9 +3418,18 @@ function onTunnelData(data)
                         var filepath = cmd.name ? obj.path.join(cmd.path, cmd.name) : cmd.path;
                         this.httprequest.uploadFilePath = filepath;
                         this.httprequest.uploadFileSize = 0;
-                        try { this.httprequest.uploadFile = fs.openSync(filepath, cmd.append ? 'abN' : 'wbN'); } catch (ex) { this.write(Buffer.from(JSON.stringify({ action: 'uploaderror', reqid: cmd.reqid }))); break; }
+                        try { 
+                            this.httprequest.uploadFile = fs.openSync(filepath, cmd.append ? 'abN' : 'wbN'); } 
+                        catch (ex) { 
+                            sendConsoleText('FileUpload Error: '+ex); 
+                            this.write(Buffer.from(JSON.stringify({ action: 'uploaderror', reqid: cmd.reqid, text: ex }))); 
+                            break; 
+                        }
                         this.httprequest.uploadFileid = cmd.reqid;
-                        if (this.httprequest.uploadFile) { this.write(Buffer.from(JSON.stringify({ action: 'uploadstart', reqid: this.httprequest.uploadFileid }))); }
+                        if (this.httprequest.uploadFile) { 
+                            this.write(Buffer.from(JSON.stringify({ action: 'uploadstart', reqid: this.httprequest.uploadFileid }))); 
+                        }
+
                         break;
                     }
                 case 'uploaddone':
