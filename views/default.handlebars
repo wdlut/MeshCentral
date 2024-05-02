@@ -1841,18 +1841,28 @@
             if (typeof dialog.elements == 'object') {
                 for (var i in dialog.elements) {
                     var elem = dialog.elements[i];
-                    if (elem.type == 'text') { x += addHtmlValue(elem.name, '<input id=cui:' + i + ' style=width:230px autocomplete=off />'); }
-                    if (elem.type == 'textarea') {
-                        if (elem.name == null) {
-                            x += '<textarea id=cui:' + i + ' style=width:356px;resize:none;height:100px autocomplete=off></textarea>';
-                        } else {
-                            x += addHtmlValue(elem.name, '<textarea id=cui:' + i + ' style=width:230px;resize:none;height:100px autocomplete=off></textarea>');
-                        }
-                    }
-                    if (elem.type == 'droplist') {
-                        var y = '';
-                        for (var j in elem.options) { y += '<option value="' + j + '">' + EscapeHtml(elem.options[j]) + '</option>'; }
-                        x += addHtmlValue(elem.name, '<select id="cui:' + i + '" style=width:230px autocomplete=off />' + y + '</select>');
+                    switch( elem.type ) {
+                        case 'text': {
+                                x += addHtmlValue(elem.name, '<input id=cui:' + i + ' style=width:230px autocomplete=off />'); 
+                            } break;
+                        case 'textarea': {
+                                if (elem.name == null) {
+                                    x += '<textarea id=cui:' + i + ' style=width:356px;resize:none;height:100px autocomplete=off></textarea>';
+                                } else {
+                                    x += addHtmlValue(elem.name, '<textarea id=cui:' + i + ' style=width:230px;resize:none;height:100px autocomplete=off></textarea>');
+                                }
+                            } break;
+                        case 'droplist': {
+                                var y = '';
+                                for (var j in elem.options) { y += '<option value="' + j + '">' + EscapeHtml(elem.options[j]) + '</option>'; }
+                                x += addHtmlValue(elem.name, '<select id="cui:' + i + '" style=width:230px autocomplete=off />' + y + '</select>');
+                            } break;
+                        case 'checkbox': {
+                                var defaultChecked= (elem.checked === "true" ? ' checked' : '');
+                                x += addHtmlValue(elem.name, '<input type="checkbox" id=cui:' + i + defaultChecked +'/>'); 
+                            } break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -1866,7 +1876,7 @@
             if (typeof dialog.elements == 'object') {
                 for (var i in dialog.elements) {
                     var elem = dialog.elements[i];
-                    if ((elem.type == 'droplist') || (elem.type == 'textarea') || (elem.type == 'text')) { t.values[i] = Q('cui:' + i).value; }
+                    t.values[i] = Q('cui:' + i).value;
                 }
             }
             meshserver.send(t);

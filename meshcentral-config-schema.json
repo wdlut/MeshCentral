@@ -1762,7 +1762,132 @@
             "description": "Path where to find custom email templates for this domain."
           },
           "customUI": {
-            "type": "object"
+            "type": "object",
+            "description": "This section is used to define custom buttons and dialog boxes.",
+            "properties": {
+              "devicesBarButtons": {
+                "type": "object",
+                "description": "This section defines custom buttons on the devices view.",
+                "properties": {
+                  "name": { 
+                    "type": "string",
+                    "description": "The name is displayed on the button."
+                  },
+                  "selection": {
+                    "type": "string",
+                    "description": "How many devices in the device list may be selected. Allowed: 'many' or 'one"
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "What should happen when the button was pressed? Allowed: 'event' or 'dialog:[dialog name]'."
+                  },
+                  "logmsg": {
+                    "type": "string",
+                    "description": "A log entry is created when the button was pressed."
+                  }         
+                } 
+              },
+              "desktopButtons": {
+                "type": "object",
+                "description": "This section defines custom buttons on the desktop view.",
+                "properties": {
+                  "name": { 
+                    "type": "string",
+                    "description": "The name is displayed on the button."
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "What should happen when the button was pressed? Allowed: 'event' or 'dialog:[dialog name]'."
+                  },
+                  "logmsg": {
+                    "type": "string",
+                    "description": "A log entry is created when the button was pressed."
+                  }         
+                } 
+              },
+              "terminalButtons": {
+                "type": "object",
+                "description": "This section defines custom buttons on the terminal view.",
+                "properties": {
+                  "name": { 
+                    "type": "string",
+                    "description": "The name is displayed on the button."
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "What should happen when the button was pressed? Allowed: 'event' or 'dialog:[dialog name]'."
+                  },
+                  "logmsg": {
+                    "type": "string",
+                    "description": "A log entry is created when the button was pressed."
+                  }         
+                } 
+              },
+              "filesButtons": {
+                "type": "object",
+                "description": "This section defines custom buttons on the files view.",
+                "properties": {
+                  "name": { 
+                    "type": "string",
+                    "description": "The name is displayed on the button."
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "What should happen when the button was pressed? Allowed: 'event' or 'dialog:[dialog name]'."
+                  },
+                  "logmsg": {
+                    "type": "string",
+                    "description": "A log entry is created when the button was pressed."
+                  }         
+                } 
+              },
+              "dialogs": {
+                "type": "object",
+                "description": "This section is used to define custom dialog boxes.",
+                "properties": {
+                  "[dialog name]": {
+                    "type": "object",
+                    "description": "Definition of one dialog box.",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "description": "Title of the dialog box."
+                      },
+                      "text": {
+                        "type": "string",
+                        "description": "This text is displayed below the header."
+                      },
+                      "buttons": {
+                        "type": "number",
+                        "description": "?"
+                      },
+                      "elements": {
+                        "type": "object",
+                        "description": "Definition of the elements of the dialog box.",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The name is displayed as label in front of the element."
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Allowed: 'text', 'textarea', 'droplist' or 'checkbox'."
+                          },
+                          "options": {
+                            "type": "string",
+                            "description": "For droplist: list entries in the form '{ [entry number]:[entry text], ...}' ."
+                          },
+                          "checked": {
+                            "type": "string",
+                            "description": "For checkbox: When 'true': checkbox default ist checked."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "consentMessages": {
             "type": "object",
