@@ -4043,7 +4043,9 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
             if ((c.e != null) && (c.e <= Date.now())) { render(req, res, getRenderPage((domain.sitestyle == 2) ? 'message2' : 'message', req, domain), getRenderArgs({ titleid: 2, msgid: 12, domainurl: encodeURIComponent(domain.url).replace(/'/g, '%27') }, req, domain)); return; }
 
             obj.db.Get('deviceshare-' + c.pid, function (err, docs) {
-                if ((err != null) || (docs == null) || (docs.length != 1)) { res.sendStatus(404); return; }
+                if ((err != null) || (docs == null) || (docs.length != 1)) { 
+                    render(req, res, getRenderPage((domain.sitestyle == 2) ? 'message2' : 'message', req, domain), getRenderArgs({ titleid: 2, msgid: 12, domainurl: encodeURIComponent(domain.url).replace(/'/g, '%27') }, req, domain)); return; 
+                }
                 const doc = docs[0];
 
                 // If this is a recurrent share, check if we are at the correct time to make use of it
