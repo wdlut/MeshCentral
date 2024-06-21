@@ -1942,7 +1942,8 @@ function getSystemInformation(func) {
             }
             if(!results.hardware.linux.LastBootUpTime) {
                 try {
-                    var child = require('child_process').execFile('/usr/bin/uptime', ['', '-s']); // must include blank value at begining for some reason?
+                    //WEDA-Change: /usr/bin/uptime kennt in unserem Linux -s nicht.
+                    var child = require('child_process').execFile('/bin/uptime', ['', '-s']); // must include blank value at begining for some reason?
                     child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
                     child.stderr.on('data', function () { });
                     child.waitExit();
