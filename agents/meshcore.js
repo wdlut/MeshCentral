@@ -1866,6 +1866,18 @@ function replaceSpacesWithUnderscoresRec(o) {
     for (var i in o) { if (i.indexOf(' ') >= 0) { o[i.split(' ').join('_')] = o[i]; delete o[i]; } replaceSpacesWithUnderscoresRec(o[i]); }
 }
 
+
+function formatDate_yyymmdd_hhmmss(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return year+"-"+month+"-"+day+" "+hours+":"+minutes+":"+seconds;
+}
+
 function getSystemInformation(func) {
     try {
         var results = { hardware: require('computer-identifiers').get() }; // Hardware info
@@ -1942,12 +1954,13 @@ function getSystemInformation(func) {
             }
             if(!results.hardware.linux.LastBootUpTime) {
                 try {
-                    //WEDA-Change: /usr/bin/uptime kennt in unserem Linux -s nicht.
-                    var child = require('child_process').execFile('/bin/uptime', ['', '-s']); // must include blank value at begining for some reason?
-                    child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-                    child.stderr.on('data', function () { });
-                    child.waitExit();
-                    results.hardware.linux.LastBootUpTime = child.stdout.str.trim();
+                    const data = require('fs').readFileSync('/proc/uptime').toString().trim();
+                    const uptimeSeconds = parseFloat(data.split(' ')[0]);
+                    results.hardware.linux.upTime = uptimeSeconds;
+                    const bootTime = new Date( Date.now() - uptimeSeconds * 1000 );
+                    const formattedBootTime = formatDate_yyymmdd_hhmmss(bootTime);
+                    results.hardware.linux.LastBootUpTime = formattedBootTime;
+                    console.log("BootTime: "+results.hardware.linux.LastBootUpTime);
                 } catch (ex) { }
             }
         }
