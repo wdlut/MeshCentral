@@ -1980,6 +1980,11 @@ export default class RFB extends EventTargetMixin {
         switch (this._rfbAuthScheme) {
             case securityTypeNone:
                 this._rfbInitState = 'SecurityResult';
+                if (this._rfbVersion >= 3.8) {
+                    this._rfbInitState = 'SecurityResult';
+                } else {
+                    this._rfbInitState = 'ClientInitialisation';
+                }
                 return true;
 
             case securityTypeXVP:
@@ -2016,13 +2021,6 @@ export default class RFB extends EventTargetMixin {
     }
 
     _handleSecurityResult() {
-        // There is no security choice, and hence no security result
-        // until RFB 3.7
-        if (this._rfbVersion < 3.7) {
-            this._rfbInitState = 'ClientInitialisation';
-            return true;
-        }
-
         if (this._sock.rQwait('VNC auth response ', 4)) { return false; }
 
         const status = this._sock.rQshift32();
