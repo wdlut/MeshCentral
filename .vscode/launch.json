@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Program",
+            "name": "Start als wdmeshadmin",
             "program": "${workspaceFolder}/meshcentral",
             "args": ["--user", "wdmeshadmin"],
             "request": "launch",
@@ -15,21 +15,38 @@
             "env": {
               "NODE_PATH": "~/MeshCentral/node_modules"
             },
-            "type": "pwa-node"
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/",
+                "!/node_modules/**"
+            ],            
+            "type": "node"
+        },
+        {
+            "name": "Start normal",
+            "program": "${workspaceFolder}/meshcentral",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+              "NODE_PATH": "~/MeshCentral/node_modules"
+            },
+            "type": "node"
         },
         {
             "name": "meshctrl",
             "program": "${workspaceFolder}/meshctrl",
             "args": [ "--url", "wss://192.168.202.147:49140" ,
-                      "--loginpass", "weda", "--loginuser", "weda", 
+                      "--loginpass", "remote2006", "--loginuser", "remotecontrol", 
                       "--id", "60e1hbj$DrRsGekYAe8qcmAN1fNPoBxh3OcMCZZBxL8ZEKu1GCxtjsrGH4P1dsck",
-                      "deviceinfo"
+                      "runcommand",
+                      "--run", "DISPLAY=:0 feh /weda/temp/*.png"
                     ],
             "request": "launch",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node"
         },
         {
             "name"        : "Duk Attach",
