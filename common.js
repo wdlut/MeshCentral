@@ -334,6 +334,11 @@ module.exports.meshServerRightsArrayToNumber = function (val) {
             if (r == 'locked') { newAccRights |= 32; }
             if (r == 'nonewgroups') { newAccRights |= 64; }
             if (r == 'notools') { newAccRights |= 128; }
+            if (r == 'usergroups') { newAccRights |= 256; }
+            if (r == 'recordings') { newAccRights |= 512; }
+            if (r == 'locksettings') { newAccRights |= 1024; }
+            if (r == 'allevents') { newAccRights |= 2048; }
+            if (r == 'nonewdevices') { newAccRights |= 4096; }
         }
         return newAccRights;
     }
@@ -399,4 +404,19 @@ module.exports.convertStrArray = function (object, split) {
     } else {
         return []
     }
+}
+
+module.exports.uniqueArray = function (a) {
+    var seen = {};
+    var out = [];
+    var len = a.length;
+    var j = 0;
+    for(var i = 0; i < len; i++) {
+         var item = a[i];
+         if(seen[item] !== 1) {
+               seen[item] = 1;
+               out[j++] = item;
+         }
+    }
+    return out;
 }
