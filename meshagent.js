@@ -1058,7 +1058,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
             db.Get('iploc_' + obj.remoteaddr, function (err, iplocs) {
                 if ((iplocs != null) && (iplocs.length == 1)) {
                     // We have a location in the database for this remote IP
-                    const iploc = nodes[0], x = {};
+                    const iploc = iplocs[0], x = {};
                     if ((iploc != null) && (iploc.ip != null) && (iploc.loc != null)) {
                         x.publicip = iploc.ip;
                         x.iploc = iploc.loc + ',' + (Math.floor((new Date(iploc.date)) / 1000));
@@ -1067,10 +1067,10 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
                 } else {
                     // Check if we need to ask for the IP location
                     var doIpLocation = 0;
-                    if (device.iploc == null) {
+                    if (obj.iploc == null) {
                         doIpLocation = 1;
                     } else {
-                        const loc = device.iploc.split(',');
+                        const loc = obj.iploc.split(',');
                         if (loc.length < 3) {
                             doIpLocation = 2;
                         } else {
@@ -1923,6 +1923,10 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
                 if (command.defender != null) { // Defender For Windows Server
                     if (!device.defender) { device.defender = {}; }
                     if (JSON.stringify(device.defender) != JSON.stringify(command.defender)) { /*changes.push('Defender status');*/ device.defender = command.defender; change = 1; log = 1; }
+                }
+                if (command.lastbootuptime != null) { // Last Boot Up Time
+                    if (!device.lastbootuptime) { device.lastbootuptime = ""; }
+                    if (device.lastbootuptime != command.lastbootuptime) { /*changes.push('Last Boot Up Time');*/ device.lastbootuptime = command.lastbootuptime; change = 1; log = 1; }
                 }
 
                 // Push Messaging Token

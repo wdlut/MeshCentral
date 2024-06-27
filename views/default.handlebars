@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -470,6 +470,17 @@
                             <input type="button" style="display:none" value="Download Report" onclick=p3showReportDialog() />
                         </td>
                         <td class="auto-style1">
+                            Filter
+                            <select id=p3filterevents onchange=refreshEvents()>
+                                <option value="">All Logs</option>
+                                <option value=agentlog>Agent Logs</option>
+                                <option value=relaylog>Relay Logs</option>
+                                <option value=manual>Manual Logs</option>
+                                <option value=runcommands>Run Command Logs</option>
+                                <option value=batchupload>Batch Upload Logs</option>
+                                <option value=changenode>Change Node Logs</option>
+                                <option value=removenode>Remove Node Logs</option>
+                            </select>
                             Show
                             <select id=p3limitdropdown onchange=refreshEvents()>
                                 <option value=60>Last 60</option>
@@ -873,6 +884,7 @@
                                 <input type=button style="margin-right:2px" disabled="disabled" id=p13RefreshButton value="Refresh" onclick="p13folderup(9999)" />
                                 <input type=button style="margin-right:2px" disabled="disabled" id=p13FindButton value="Find" onclick="p13findfile()" />
                                 <input type=button style="margin-right:2px" disabled="disabled" id=p13GoToFolderButton value="GoTo" onclick="p13gotofolder()" />
+                                <input type=button style="margin-right:2px" disabled="disabled" id=p13OpenButton value="Open" onclick="p13openfilefolder()" />
                             </div>
                         </td>
                     </tr>
@@ -975,6 +987,17 @@
                         <td class="h1"></td>
                         <!--<td>&nbsp;<input type=button onclick=refreshDeviceEvents() value="Refresh" /></td>-->
                         <td class="auto-style1">
+                            Filter
+                            <select id=p16filterevents onchange=refreshDeviceEvents()>
+                                <option value="">All Logs</option>
+                                <option value=agentlog>Agent Logs</option>
+                                <option value=relaylog>Relay Logs</option>
+                                <option value=manual>Manual Logs</option>
+                                <option value=runcommands>Run Command Logs</option>
+                                <option value=batchupload>Batch Upload Logs</option>
+                                <option value=changenode>Change Node Logs</option>
+                                <option value=removenode>Remove Node Logs</option>
+                            </select>
                             Show
                             <select id=p16limitdropdown onchange=refreshDeviceEvents()>
                                 <option value=60>Last 60</option>
@@ -1104,6 +1127,17 @@
                         <td class="h1"></td>
                         <!--<td>&nbsp;<input type=button onclick=refreshUsersEvents() value="Refresh" /></td>-->
                         <td class="auto-style1">
+                            Filter
+                            <select id=p31filterevents onchange=refreshUsersEvents()>
+                                <option value="">All Logs</option>
+                                <option value=agentlog>Agent Logs</option>
+                                <option value=relaylog>Relay Logs</option>
+                                <option value=manual>Manual Logs</option>
+                                <option value=runcommands>Run Command Logs</option>
+                                <option value=batchupload>Batch Upload Logs</option>
+                                <option value=changenode>Change Node Logs</option>
+                                <option value=removenode>Remove Node Logs</option>
+                            </select>
                             Show
                             <select id=p31limitdropdown onchange=refreshUsersEvents()>
                                 <option value=60>Last 60</option>
@@ -1368,6 +1402,13 @@
                                 <option value=1000>Very slow</option>
                             </select>
                         </div>
+                        <div>
+                            <div>Encoding</div>
+                            <select id="d7encoding" dir="rtl">
+                                <option value=1>JPEG</option>
+                                <option selected=selected value=4>WEBP</option>
+                            </select>
+                        </div>
                         <div id="d7desktopOtherSettings">
                             <div>Other Settings</div>
                             <div id="d7otherset2" style="display:block">
@@ -1490,8 +1531,8 @@
         var stars = {}; // Devices that have been "stared" by the user.
         var nodeShortIdent = 0;
         var desktop;
-        var desktopsettings = { encoding: 2, showfocus: false, showmouse: true, showcad: true, quality: 40, scaling: 1024, framerate: 50, localkeymap: false, swapmouse: false, remotekeymap: false, autoclipboard: false, autolock: false };
-        var multidesktopsettings = { quality: 20, scaling: 128, framerate: 1000 };
+        var desktopsettings = { encoding: 2, showfocus: false, showmouse: true, showcad: true, quality: 40, scaling: 1024, framerate: 50, localkeymap: false, swapmouse: false, remotekeymap: false, autoclipboard: false, autolock: false, agentencoding: 4 };
+        var multidesktopsettings = { quality: 20, scaling: 128, framerate: 1000, agentencoding: 4 };
         var terminal;
         var files;
         var debugLevel = parseInt('{{{debuglevel}}}');
@@ -1566,7 +1607,13 @@
 
         // Check if WebP is supported
         var webpSupport = false;
-        check_webp_feature('lossy', function (f, x) { webpSupport = x; });
+        check_webp_feature('lossy', function (f, x) {
+            webpSupport = x;
+            if (!x) {
+                d7encoding.options[1].disabled = true;
+                d7encoding.value = 1;
+            }
+        });
 
         function startup() {
             if ((features & 32) == 0) {
@@ -1771,7 +1818,7 @@
             // Set the user's desktop shortcut keys
             deskKeyboardShortcuts = [];
             var deskKeyboardShortcutsStr = getstore('deskKeyShortcuts', '0x0A002E,0x100000,0x100028,0x100026,0x10004C,0x10004D,0x11004D,0x100052,0x020073,0x080057,0x020009,0x100025,0x100027').split(',');
-            for (var i in deskKeyboardShortcutsStr) { deskKeyboardShortcuts.push(parseInt(deskKeyboardShortcutsStr[i])); }
+            for (var i in deskKeyboardShortcutsStr) { if (deskKeyboardShortcutsStr[i] != "") { deskKeyboardShortcuts.push(parseInt(deskKeyboardShortcutsStr[i])); } }
             updateDeskShortcutKeys();
 
             // Set the user's desktop strings
@@ -2655,6 +2702,16 @@
                                 else if (userSessions.length === 1) { connectDesktop(null, 1, userSessions[0].SessionId, message.tag); } // One active session, connect to it
                                 else {
                                     var x = '';
+                                    var sortBy = "{{{userSessionsSort}}}";
+                                    if (sortBy != '') {
+                                        userSessions.sort(function(a, b) {
+                                            if (!a[sortBy]) return -1; // a comes before b
+                                            if (!b[sortBy]) return 1;  // b comes before a
+                                            if (a[sortBy] < b[sortBy]) return -1;
+                                            if (a[sortBy] > b[sortBy]) return 1;
+                                            return 0;
+                                        });
+                                    }
                                     for (var i in userSessions) {
                                         x += '<div style="text-align:left;cursor:pointer;background-color:gray;margin:5px;padding:5px;border-radius:5px" onclick=connectDesktop(event,1,' + userSessions[i].SessionId + ',' + message.tag + ')>' + userSessions[i].State + (userSessions[i].StationName ? (', ' + userSessions[i].StationName) : '');
                                         if (userSessions[i].Username) { if (userSessions[i].Domain) { x += ' - ' + userSessions[i].Domain + '/' + userSessions[i].Username; } else { x += ' - ' + userSessions[i].Username; } }
@@ -3087,25 +3144,31 @@
                     if (!message.event.nolog) {
                         if (currentNode && (message.event.nodeid == currentNode._id) && (currentDeviceEvents != null)) {
                             // If this event has a nodeid and we are looking at this node, update the log in real time.
-                            currentDeviceEvents.unshift(message.event);
-                            var eventLimit = parseInt(p16limitdropdown.value);
-                            while (currentDeviceEvents.length > eventLimit) { currentDeviceEvents.pop(); } // Remove element(s) at the end
-                            mainUpdate(1024);
+                            if ((message.event.action == p16filterevents.value) || (p16filterevents.value == "")) {
+                                currentDeviceEvents.unshift(message.event);
+                                var eventLimit = parseInt(p16limitdropdown.value);
+                                while (currentDeviceEvents.length > eventLimit) { currentDeviceEvents.pop(); } // Remove element(s) at the end
+                                mainUpdate(1024);
+                            }
                         }
 
                         if (currentUser && (message.event.userid == currentUser._id)) {
                             // If this event has a userid and we are looking at this user, update the log in real time.
-                            currentUserEvents.unshift(message.event);
-                            var eventLimit = parseInt(p31limitdropdown.value);
-                            while (currentUserEvents.length > eventLimit) { currentUserEvents.pop(); } // Remove element(s) at the end
-                            mainUpdate(2048);
+                            if ((message.event.action == p31filterevents.value) || (p31filterevents.value == "")) {
+                                currentUserEvents.unshift(message.event);
+                                var eventLimit = parseInt(p31limitdropdown.value);
+                                while (currentUserEvents.length > eventLimit) { currentUserEvents.pop(); } // Remove element(s) at the end
+                                mainUpdate(2048);
+                            }
                         }
 
                         // Add this event to the main events log.
-                        events.unshift(message.event);
-                        var eventLimit = parseInt(p3limitdropdown.value);
-                        while (events.length > eventLimit) { events.pop(); } // Remove element(s) at the end
-                        mainUpdate(32);
+                        if ((message.event.action == p3filterevents.value) || (p3filterevents.value == "")) {
+                            events.unshift(message.event);
+                            var eventLimit = parseInt(p3limitdropdown.value);
+                            while (events.length > eventLimit) { events.pop(); } // Remove element(s) at the end
+                            mainUpdate(32);
+                        }
                     }
                     if (message.event.noact) break; // Take no action on this event
 
@@ -3168,7 +3231,7 @@
                                         // Set the user's desktop shortcut keys
                                         deskKeyboardShortcuts = [];
                                         var deskKeyboardShortcutsStr = webstate.deskKeyShortcuts.split(',');
-                                        for (var i in deskKeyboardShortcutsStr) { deskKeyboardShortcuts.push(parseInt(deskKeyboardShortcutsStr[i])); }
+                                        for (var i in deskKeyboardShortcutsStr) { if (deskKeyboardShortcutsStr[i] != "") { deskKeyboardShortcuts.push(parseInt(deskKeyboardShortcutsStr[i])); } }
                                         updateDeskShortcutKeys();
                                     }
                                     if (webstate.deskStrings != null) {
@@ -3545,17 +3608,19 @@
                                 // Show the notification
                                 if (n & 2) {
                                     var agentPrivilages = "Agent connected";
-                                    if ((node.agent != null) && (node.agent.root === false)) { "Agent connected with limited privilages"; }
-                                    if (((node.conn & 1) == 0) && ((message.event.conn & 1) != 0)) { addNotification({ text: agentPrivilages, title: node.name, icon: node.icon, nodeid: node._id }); }
-                                    if (((node.conn & 2) == 0) && ((message.event.conn & 2) != 0)) { addNotification({ text: "Intel AMT detected", title: node.name, icon: node.icon, nodeid: node._id }); }
-                                    if (((node.conn & 4) == 0) && ((message.event.conn & 4) != 0)) { addNotification({ text: "Intel AMT CIRA connected", title: node.name, icon: node.icon, nodeid: node._id }); }
-                                    if (((node.conn & 16) == 0) && ((message.event.conn & 16) != 0)) { addNotification({ text: "MQTT connected", title: node.name, icon: node.icon, nodeid: node._id }); }
+                                    if ((node.agent != null) && (node.agent.root === false)) { agentPrivilages = "Agent connected with limited privilages"; }
+                                    var abc = { title: node.name, icon: node.icon, nodeid: node._id, id: message.event.id };
+                                    if (((node.conn & 1) == 0) && ((message.event.conn & 1) != 0)) { abc.text = agentPrivilages; addNotification(abc); }
+                                    if (((node.conn & 2) == 0) && ((message.event.conn & 2) != 0)) { abc.text = "Intel AMT detected"; addNotification(abc); }
+                                    if (((node.conn & 4) == 0) && ((message.event.conn & 4) != 0)) { abc.text = "Intel AMT CIRA connected"; addNotification(abc); }
+                                    if (((node.conn & 16) == 0) && ((message.event.conn & 16) != 0)) { abc.text = "MQTT connected"; addNotification(abc); }
                                 }
                                 if (n & 4) {
-                                    if (((node.conn & 1) != 0) && ((message.event.conn & 1) == 0)) { addNotification({ text: "Agent disconnected", title: node.name, icon: node.icon, nodeid: node._id }); }
-                                    if (((node.conn & 2) != 0) && ((message.event.conn & 2) == 0)) { addNotification({ text: "Intel AMT not detected", title: node.name, icon: node.icon, nodeid: node._id }); }
-                                    if (((node.conn & 4) != 0) && ((message.event.conn & 4) == 0)) { addNotification({ text: "Intel AMT CIRA disconnected", title: node.name, icon: node.icon, nodeid: node._id }); }
-                                    if (((node.conn & 16) != 0) && ((message.event.conn & 16) == 0)) { addNotification({ text: "MQTT disconnected", title: node.name, icon: node.icon, nodeid: node._id }); }
+                                    var abc = { title: node.name, icon: node.icon, nodeid: node._id, id: message.event.id  };
+                                    if (((node.conn & 1) != 0) && ((message.event.conn & 1) == 0)) { abc.text = "Agent disconnected"; addNotification(abc); }
+                                    if (((node.conn & 2) != 0) && ((message.event.conn & 2) == 0)) { abc.text = "Intel AMT not detected"; addNotification(abc); }
+                                    if (((node.conn & 4) != 0) && ((message.event.conn & 4) == 0)) { abc.text = "Intel AMT CIRA disconnected"; addNotification(abc); }
+                                    if (((node.conn & 16) != 0) && ((message.event.conn & 16) == 0)) { abc.text = "MQTT disconnected"; addNotification(abc); }
                                 }
 
                                 // Change the node connection state
@@ -4017,6 +4082,7 @@
             x += '<label><input id=d2c11 type=checkbox' + ((deviceViewSettings.devsCols.indexOf('windowsav') >= 0)?' checked':'') + '>' + "Windows AV" + '</label><br />';
             x += '<label><input id=d2c12 type=checkbox' + ((deviceViewSettings.devsCols.indexOf('windowsupdate') >= 0)?' checked':'') + '>' + "Windows Update" + '</label><br />';
             x += '<label><input id=d2c13 type=checkbox' + ((deviceViewSettings.devsCols.indexOf('windowsfirewall') >= 0)?' checked':'') + '>' + "Windows Firewall" + '</label><br />';
+            x += '<label><input id=d2c14 type=checkbox' + ((deviceViewSettings.devsCols.indexOf('lastbootuptime') >= 0)?' checked':'') + '>' + "Last Boot Up Time" + '</label><br />';
             x += '<label><input id=d2c1 type=checkbox' + ((deviceViewSettings.devsCols.indexOf('links') >= 0)?' checked':'') + '>' + "MeshCentral Router Links" + '</label><br />';
             x += '<label><input id=d2c2 type=checkbox' + ((deviceViewSettings.devsCols.indexOf('user') >= 0)?' checked':'') + '>' + "Logged in users" + '</label><br />';
             x += '<label><input id=d2c3 type=checkbox' + ((deviceViewSettings.devsCols.indexOf('ip') >= 0)?' checked':'') + '>' + "Agent IP address" + '</label><br />';
@@ -4042,6 +4108,7 @@
             if (Q('d2c11').checked) { cols.push('windowsav'); }
             if (Q('d2c12').checked) { cols.push('windowsupdate'); }
             if (Q('d2c13').checked) { cols.push('windowsfirewall'); }
+            if (Q('d2c14').checked) { cols.push('lastbootuptime'); }
             if (Q('d2c15').checked) { cols.push('amthost'); }
             if (Q('d2c17').checked) { cols.push('amtstate'); }
             deviceViewSettings.devsCols = cols;
@@ -4484,6 +4551,7 @@
                         if (deviceViewSettings.devsCols.indexOf('windowsav') >= 0) { colums += '<th style=color:gray;width:100px>' + "Windows AV"; }
                         if (deviceViewSettings.devsCols.indexOf('windowsupdate') >= 0) { colums += '<th style=color:gray;width:120px>' + "Windows Update"; }
                         if (deviceViewSettings.devsCols.indexOf('windowsfirewall') >= 0) { colums += '<th style=color:gray;width:120px>' + "Windows Firewall"; }
+                        if (deviceViewSettings.devsCols.indexOf('lastbootuptime') >= 0) { colums += '<th style=color:gray;width:120px>' + "Last Boot Up Time"; }
                         if (deviceViewSettings.devsCols.indexOf('links') >= 0) { colums += '<th style=color:gray;width:120px>' + "Links"; }
                         if (deviceViewSettings.devsCols.indexOf('user') >= 0) { colums += '<th style=color:gray;width:120px>' + "User"; }
                         if (deviceViewSettings.devsCols.indexOf('ip') >= 0) { colums += '<th style=color:gray;width:120px>' + "Address"; }
@@ -4557,7 +4625,7 @@
                                 c.removeAttribute('onmousemove');
                                 Q('xkvmid_' + shortid).appendChild(c);
                                 QH('skvmid_' + shortid, ["Disconnected", "Connecting...", "Setup...", '', ''][((desktop.m.State == null)?desktop.m.state:desktop.m.State)]);
-                                if (desktop.m.SendCompressionLevel) { desktop.m.SendCompressionLevel(webpSupport?4:1, multidesktopsettings.quality, multidesktopsettings.scaling, multidesktopsettings.framerate); }
+                                if (desktop.m.SendCompressionLevel) { desktop.m.SendCompressionLevel(multidesktopsettings.agentencoding, multidesktopsettings.quality, multidesktopsettings.scaling, multidesktopsettings.framerate); }
                                 desktop.shortid = shortid;
                                 desktop.onStateChanged = onMultiDesktopStateChange;
                                 desktop.m.onRemoteInputLockChanged = null;
@@ -4752,7 +4820,7 @@
                     }
                 }
 
-                if (node.desc && (deviceViewSettings.devsCols.indexOf('desc') >= 0)) { name = '<div style=float:right>' + EscapeHtml(node.desc) + '</div><div>' + name + '</div>'; }
+                if (node.desc && (deviceViewSettings.devsCols.indexOf('desc') >= 0)) { name = '<div style=float:right' + (stars[node._id] == 1 ? ';padding-right:15px' : '') + '>' + EscapeHtml(node.desc) + '</div><div>' + name + '</div>'; }
 
                 var collapseName = node.meshid;
                 if (sort == 1) { collapseName = ('pwr:' + (node.pwr?node.pwr:0)); }
@@ -4797,6 +4865,9 @@
                 }
                 if (deviceViewSettings.devsCols.indexOf('windowsfirewall') >= 0) { // Windows Firewall
                     r += '<td style=text-align:center>' + ((node.wsc && node.wsc.firewall != null) ? (node.wsc.firewall == 'OK' ? "<span style=color:green>OK</span>" : "<span style=color:red>BAD</span>") : "");
+                }
+                if (deviceViewSettings.devsCols.indexOf('lastbootuptime') >= 0) { // Last Boot Up Time
+                    r += '<td style=text-align:center;font-size:x-small>' + ((node.lastbootuptime != null) ? printDateTime(new Date(node.lastbootuptime)) : "");
                 }
                 if (deviceViewSettings.devsCols.indexOf('links') >= 0) { r += '<td style=text-align:center;font-size:x-small>' + getShortRouterLinks(node); } // Links
                 if (deviceViewSettings.devsCols.indexOf('user') >= 0) { r += '<td style=text-align:center>' + getUserShortStr(node); } // User
@@ -5089,6 +5160,7 @@
             QV('d7desktopOtherSettings', false);
             d7bitmapquality.value = multidesktopsettings.quality;
             d7bitmapscaling.value = multidesktopsettings.scaling;
+            d7encoding.value = multidesktopsettings.agentencoding;
             if (multidesktopsettings.framerate) { d7framelimiter.value = multidesktopsettings.framerate; } else { d7framelimiter.value = 100; }
             setDialogMode(7, "Remote Desktop Settings", 3, showMultiDesktopSettingsChanged);
         }
@@ -5097,9 +5169,10 @@
             multidesktopsettings.quality = d7bitmapquality.value;
             multidesktopsettings.scaling = d7bitmapscaling.value;
             multidesktopsettings.framerate = d7framelimiter.value;
+            multidesktopsettings.agentencoding = d7encoding.value;
             localStorage.setItem('multidesktopsettings', JSON.stringify(multidesktopsettings));
             // Make changes to all current connections
-            for (var i in multiDesktop) { multiDesktop[i].m.SendCompressionLevel(webpSupport?4:1, multidesktopsettings.quality, multidesktopsettings.scaling, multidesktopsettings.framerate); }
+            for (var i in multiDesktop) { multiDesktop[i].m.SendCompressionLevel(multidesktopsettings.agentencoding, multidesktopsettings.quality, multidesktopsettings.scaling, multidesktopsettings.framerate); }
         }
 
         function connectMultiDesktop(node, contype) {
@@ -5131,7 +5204,7 @@
                     desk.attemptWebRTC = attemptWebRTC;
                     desk.onStateChanged = onMultiDesktopStateChange;
                     //desk.onConsoleMessageChange = function () { console.log('CONSOLEMSG:', desk.consoleMessage); }
-                    desk.m.ImageType = webpSupport?4:1; // Send 4 if WebP is supported, otherwise send 1 for JPEG.
+                    desk.m.ImageType = multidesktopsettings.agentencoding; // Send 4 if WebP is supported, otherwise send 1 for JPEG.
                     desk.m.CompressionLevel = multidesktopsettings.quality;
                     desk.m.ScalingLevel = multidesktopsettings.scaling;
                     if (multidesktopsettings.framerate) { desk.m.FrameRateTimer = multidesktopsettings.framerate; }
@@ -5215,12 +5288,12 @@
         }
 
         // Intel AMT device import for a device group
-        function showAmtImport(meshid) {
-            if (xxdialogMode) return false;
-            var x = '<form method=post enctype=multipart/form-data action=amtimport.ashx target=fileUploadFrame><input type=text name=link style=display:none id=amtImportDevGroup value="' + meshid + '" /><input type=file name=files id=amtImportInput style=width:100% onchange="p5updateUploadDialogOk(\'p5uploadinput\')" /><input type=hidden name=authCookie value=' + authCookie + ' /><input type=submit id=p5loginSubmit style=display:none /></form>';
-            setDialogMode(2, "Import Intel AMT devices", 3, p5uploadFileEx, x);
-            p5updateUploadDialogOk('amtImportInput');
-        }
+        // function showAmtImport(meshid) {
+        //     if (xxdialogMode) return false;
+        //     var x = '<form method=post enctype=multipart/form-data action=amtimport.ashx target=fileUploadFrame><input type=text name=link style=display:none id=amtImportDevGroup value="' + meshid + '" /><input type=file name=files id=amtImportInput style=width:100% onchange="p5updateUploadDialogOk(\'p5uploadinput\')" /><input type=hidden name=authCookie value=' + authCookie + ' /><input type=submit id=p5loginSubmit style=display:none /></form>';
+        //     setDialogMode(2, "Import Intel AMT devices", 3, p5uploadFileEx, x);
+        //     p5updateUploadDialogOk('amtImportInput');
+        // }
 
         function showAmtImport(meshid) {
             if (xxdialogMode) return;
@@ -5444,7 +5517,7 @@
             var opts = '<select id=aginsSelect onchange=addAgentToMeshClick() style=width:236px><option value=0>' + "Windows" + '</option><option value=1>' + "Linux / BSD" + '</option><option value=5>' + "Linux / BSD / macOS Binary Installer" + '</option><option value=2>' + "Apple macOS" + '</option>';
             if ((features & 2) == 0) { opts += '<option value=6>' + "Mobile device" + '</option>'; } // Don't display mobile setup in LAN mode.
             opts += '<option value=7>' + "MeshCentral Assistant" + '</option>';
-            opts += '<option value=3>' + "Windows (UnInstall)" + '</option><option value=4>' + "Linux / BSD (UnInstall)" + '</option></select>';
+            opts += '<option value=3>' + "Windows (UnInstall)" + '</option><option value=4>' + "Linux / BSD (UnInstall)" + '</option><option value=8>' + "Apple macOS (UnInstall)" + '</option></select>';
             x += addHtmlValue("Operating System", opts);
 
             var servername = serverinfo.name;
@@ -5486,7 +5559,7 @@
 
             // macOS agent install
             x += '<div id=agins_osx style=display:none>' + format("To add a new computer to device group \"{0}\", download the mesh agent and install it the computer to manage. This agent installer has server and device group information embedded within it.", EscapeHtml(mesh.name)) + '<br /><br />';
-            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + (urlargs.key?('&key=' + urlargs.key):'') + '") title="' + "64bit version of macOS Mesh Agent" + '">macOS Agent (64bit)</a> <img src=images/link4.png height=10 width=10 title="' + "Copy macOS agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + '",0)>');
+            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + (urlargs.key?('&key=' + urlargs.key):'') + '") title="' + "Universal version of macOS Mesh Agent" + '">macOS Agent (Universal)</a> <img src=images/link4.png height=10 width=10 title="' + "Copy macOS agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + '",0)>');
             x += '</div>';
 
             // QR code agent install
@@ -5510,14 +5583,20 @@
 
             // Windows agent uninstall
             x += '<div id=agins_windows_un style=display:none>' + "To remove a mesh agent, download the file below, run it and click \"uninstall\"." + '<br /><br />';
-            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshagents?id=3' + (urlargs.key?('&key=' + urlargs.key):'') + '",null,true) title="' + "32bit version of the MeshAgent" + '">' + "Windows (.exe)" + '</a>');
-            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshagents?id=4' + (urlargs.key?('&key=' + urlargs.key):'') + '",null,true) title="' + "64bit version of the MeshAgent" + '">' + "Windows x64 (.exe)" + '</a>');
+            x += addHtmlValue("Mesh Agent", '<a id=aginsw32unlnk name="meshagents?id=3&meshid=' + meshid.split('/')[2] + '&installflags=0' + (urlargs.key?('&key=' + urlargs.key):'') + '" title="' + "x86 32bit version of the MeshAgent" + '">' + "Windows x86-32 (.exe)" + '</a> <img src=images/link4.png height=10 width=10 title="' + "Copy Windows x86 32bit agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshagents?id=3&meshid=' + meshid.split('/')[2] + '&installflags=",1)>');
+            x += addHtmlValue("Mesh Agent", '<a id=aginsw64unlnk name="meshagents?id=4&meshid=' + meshid.split('/')[2] + '&installflags=0' + (urlargs.key?('&key=' + urlargs.key):'') + '" title="' + "x86 64bit version of the MeshAgent" + '">' + "Windows x86-64 (.exe)" + '</a> <img src=images/link4.png height=10 width=10 title="' + "Copy Windows x86 64bit agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshagents?id=4&meshid=' + meshid.split('/')[2] + '&installflags=",1)>');
+            x += addHtmlValue("Mesh Agent", '<a id=aginswa64unlnk name="meshagents?id=43&meshid=' + meshid.split('/')[2] + '&installflags=0' + (urlargs.key?('&key=' + urlargs.key):'') + '" title="' + "ARM 64bit version of the MeshAgent" + '">' + "Windows ARM-64 (.exe)" + '</a> <img src=images/link4.png height=10 width=10 title="' + "Copy Windows ARM 64bit agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshagents?id=43&meshid=' + meshid.split('/')[2] + '&installflags=",1)>');
             x += '</div>';
 
             // Linux agent uninstall
             x += '<div id=agins_linux_un style=display:none>' + "To remove a mesh agent, run the following command. Root credentials will be needed." + '<br />';
             x += '<textarea id=agins_linux_area_un rows=2 cols=20 readonly=readonly style=border-radius:4px;padding:6px;margin-top:4px;margin-bottom:4px;background-color:#FFF9D3;border:0;width:100%;resize:none;height:160px;overflow:auto;font-size:12px></textarea>';
             x += '<a style=text-decoration:none title="' + "Copy to clipboard" + '" onclick=copyAgentIdValue("agins_linux_area_un")><img src=images/link4.png height=10 width=10 style=cursor:pointer> Copy</a></div>';
+
+            // macOS agent uninstall
+            x += '<div id=agins_osx_un style=display:none>' + "To remove a mesh agent, download the file below, right click on the \".mpkg\" file and click \"Show Package Contents\", then right click on \"Uninstall.command\" and click \"Open\"" + '<br /><br />';
+            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + (urlargs.key?('&key=' + urlargs.key):'') + '") title="' + "Universal version of macOS Mesh Agent" + '">macOS Agent (Universal)</a> <img src=images/link4.png height=10 width=10 title="' + "Copy macOS agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + '",0)>');
+            x += '</div>';
 
             // Linux binary installer
             x += '<div id=agins_linux_inst style=display:none>' + "This is a executable on OS's with graphical user interfaces" + '<br /><br />' + "Apple macOS executables will need to be removed from quarantine to run 'xattr -r -d com.apple.quarantine meshagent'" + '<br /><br />' + "You need to 'chmod +x meshagent' and run this file" + '<br /><br />';
@@ -5576,6 +5655,7 @@
             QV('agins_qrcode', v == 6);
             QV('agins_assistant', (v == 7) && (Q('asinsType').value != 4));
             QV('agins_assistant2', (v == 7) && (Q('asinsType').value == 4));
+            QV('agins_osx_un', v == 8);
             Q('aginsbinlnk').onclick = function() { downloadFile((Q('aginsbinlnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):'') + '&meshinstall=' + Q('aginsSysType').value); };
             Q('aginsbincmd').value = (Q('aginsbincmd').value.split('&installflags=')[0]) + '&installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):'') + '&meshinstall=' + Q('aginsSysType').value + '\"';
             QV('aginsTypeDiv', (v == 0) || (v == 5));
@@ -5585,6 +5665,9 @@
             Q('aginsw32lnk').onclick = function() { downloadFile((Q('aginsw32lnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):''), null, true); }
             Q('aginsw64lnk').onclick = function() { downloadFile((Q('aginsw64lnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):''), null, true); }
             Q('aginswa64lnk').onclick = function() { downloadFile((Q('aginswa64lnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):''), null, true); }
+            Q('aginsw32unlnk').onclick = function() { downloadFile((Q('aginsw32lnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):''), null, true); }
+            Q('aginsw64unlnk').onclick = function() { downloadFile((Q('aginsw64lnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):''), null, true); }
+            Q('aginswa64unlnk').onclick = function() { downloadFile((Q('aginswa64lnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):''), null, true); }
             if (debugmode > 0) { Q('aginswmshlnk').onclick = function() { downloadFile((Q('aginswmshlnk').name.split('installflags=')[0]) + 'installflags=' + Q('aginsType').value + (urlargs.key?('&key=' + urlargs.key):''), null, true); } }
             Q('asinslnk').onclick = function() { downloadFile(Q('asinslnk').name + '&ac=' + Q('asinsType').value, null, true); }
             Q('asinslnk2').onclick = function() { downloadFile(Q('asinslnk').name + '&ac=' + Q('asinsType').value, null, true); }
@@ -7836,6 +7919,8 @@
                     useridlist.sort();
                     for (var i in useridlist) {
                         var trash = '', rights = '', userid = useridlist[i], srights = currentNode.links[userid].rights, username = EscapeHtml(userid.split('/')[2]), rights = makeUserDeviceRightsString(srights), ugroup = false;
+                        if (currentNode.links[userid].name != null) { username = EscapeHtml(currentNode.links[userid].name); }
+                        if (userid == userinfo._id) { username = EscapeHtml(userinfo.name); }
                         if ((users != null) && (users[userid] != null)) { username = EscapeHtml(users[userid].name); }
                         if ((usergroups != null) && (usergroups[userid] != null)) { username = EscapeHtml(usergroups[userid].name); ugroup = true; }
                         if ((meshrights & 2) != 0) {
@@ -8280,8 +8365,8 @@
             showShareDeviceValidate();
             var tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
-            var rangeTime = flatpickr('#d2timeRangeSelector', { mode: 'range', enableTime: true, minDate: new Date(), defaultDate: [ new Date(), tomorrow ] });
-            var startTime = flatpickr('#d2timeStartSelector', { enableTime: true, minDate: new Date(), defaultDate: new Date() });
+            var rangeTime = flatpickr('#d2timeRangeSelector', { mode: 'range', enableTime: true, minDate: new Date(), defaultDate: [ new Date(), tomorrow ], minuteIncrement: 1 });
+            var startTime = flatpickr('#d2timeStartSelector', { enableTime: true, minDate: new Date(), defaultDate: new Date(), minuteIncrement: 1  });
             xxdialogTag = { range: rangeTime, start: startTime };
         }
 
@@ -8520,7 +8605,7 @@
                 }
                 x += '<tr class=' + (((count % 2) == 0)?'altBack':'') + '><td><div>&nbsp;' + printDate(date) + '<div></div></div></td><td><div>' + datavalue + '</div></td></tr>';
                 ++count;
-                date = new Date(date.getTime() - (1000 * 60 * 60 * 24)); // Substract one day
+                date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
             }
             // Add the language and timezone of the browser to the server so the server can localize the time correctly.
             var tz = '';
@@ -8934,7 +9019,7 @@
                     c.removeAttribute('onclick');
                     Q('DeskParent').appendChild(c);
                     desktop = xdesk;
-                    if (desktop.m.SendCompressionLevel) { desktop.m.SendCompressionLevel(webpSupport?4:1, desktopsettings.quality, desktopsettings.scaling, desktopsettings.framerate); }
+                    if (desktop.m.SendCompressionLevel) { desktop.m.SendCompressionLevel(desktopsettings.agentencoding, desktopsettings.quality, desktopsettings.scaling, desktopsettings.framerate); }
                     desktop.onStateChanged = onDesktopStateChange;
                     desktop.onMetadataChange = function(metadata) { updateMetadata(desktop, 'deskmetadata'); }
                     if ((features2 & 0x2000) != 0) desktop.m.stopInput = true;
@@ -9207,7 +9292,7 @@
                         }
                     }
                     desktop.onMetadataChange = function(metadata) { updateMetadata(desktop, 'deskmetadata'); }
-                    desktop.m.ImageType = webpSupport?4:1; // Send 4 if WebP is supported, otherwise send 1 for JPEG.
+                    desktop.m.ImageType = desktopsettings.agentencoding; // Send 4 if WebP is supported, otherwise send 1 for JPEG.
                     desktop.m.CompressionLevel = desktopsettings.quality; // Number from 1 to 100. 50 or less is best.
                     desktop.m.ScalingLevel = desktopsettings.scaling;
                     if (desktopsettings.framerate) { desktop.m.FrameRateTimer = desktopsettings.framerate; }
@@ -9513,6 +9598,7 @@
             desktopsettings.quality = d7bitmapquality.value;
             desktopsettings.scaling = d7bitmapscaling.value;
             desktopsettings.framerate = d7framelimiter.value;
+            desktopsettings.agentencoding = d7encoding.value;
             desktopsettings.swapmouse = d7deskSwapMouse.checked;
             desktopsettings.rmw = d7deskrmw.checked;
             desktopsettings.remotekeymap = d7deskRemoteKeyMap.checked;
@@ -9531,16 +9617,17 @@
             applyDesktopSettings();
             updateDesktopButtons();
             if (desktop) {
-                if (desktop.contype == 1) { // Intel AMT KVM
+                if (desktop.contype == 1) { // Mesh Agent Remote Desktop
                     desktop.m.SwapMouse = desktopsettings.swapmouse;
                     desktop.m.ReverseMouseWheel = desktopsettings.rmw;
                     desktop.m.remoteKeyMap = desktopsettings.remotekeymap;
                     if (desktop.State != 0) {
-                        desktop.m.SendCompressionLevel(webpSupport?4:1, desktopsettings.quality, desktopsettings.scaling, desktopsettings.framerate);
+                        desktop.m.SendCompressionLevel(desktopsettings.agentencoding, desktopsettings.quality, desktopsettings.scaling, desktopsettings.framerate);
                         desktop.sendCtrlMsg('{"ctrlChannel":"102938","type":"autolock","value":' + desktopsettings.autolock + '}');
+                        desktop.m.SendRefresh();
                     }
                 }
-                if (desktop.contype == 2) { // Mesh Agent Remote Desktop
+                if (desktop.contype == 2) { // Intel AMT KVM 
                     desktop.m.ReverseMouseWheel = desktopsettings.kvmrmw;
                     if (desktopsettings.showfocus == false) { desktop.m.focusmode = 0; deskFocusBtn.value = "All Focus"; }
                     if (desktop.State != 0) { desktop.Stop(); setTimeout(function () { connectDesktop(null, 2); }, 50); }
@@ -9559,6 +9646,7 @@
             d7desktopmode.value = desktopsettings.encoding;
             d7showfocus.checked = desktopsettings.showfocus;
             d7showcursor.checked = desktopsettings.showmouse;
+            if (desktopsettings.agentencoding) { d7encoding.value = desktopsettings.agentencoding; } else { desktopsettings.agentencoding = 4; }
             d7bitmapquality.value = 40; // Default value
             if (ops.indexOf(parseInt(desktopsettings.quality)) >= 0) { d7bitmapquality.value = desktopsettings.quality; }
             d7bitmapscaling.value = desktopsettings.scaling;
@@ -9799,6 +9887,7 @@
             for (var i = 0; i < 10; i++) { x += '<option value=' + (i + 48) + '>' + i + '</option>'; }
             for (var i = 0; i < 26; i++) { x += '<option value=' + (i + 65) + '>' + String.fromCharCode(i + 65) + '</option>'; }
             x += '</select> <input type=button value=' + "Add" + ' onclick=addDeskCustomizeKey() /></div>';
+            x += '<div style=width:100%;padding:2px;text-align:center><input type=button value="' + "Restore Default Keyboard Shortcuts" + '" onclick=restoreDeskCustomizeKey() /></div>';
             setDialogMode(2, "Keyboard Shortcuts Customization", 1, deskCustomizeKeysEx, x);
             deskUpdateShortcutList();
         }
@@ -9838,6 +9927,15 @@
             var na = [];
             for (var i in deskKeyboardShortcuts) { if (deskKeyboardShortcuts[i] != k) { na.push(deskKeyboardShortcuts[i]); } }
             deskKeyboardShortcuts = na;
+            deskUpdateShortcutList();
+        }
+
+        function restoreDeskCustomizeKey() {
+            deskKeyboardShortcuts = [];
+            putstore('deskKeyShortcuts', null);
+            var deskKeyboardShortcutsStr = getstore('deskKeyShortcuts', '0x0A002E,0x100000,0x100028,0x100026,0x10004C,0x10004D,0x11004D,0x100052,0x020073,0x080057,0x020009,0x100025,0x100027').split(',');
+            for (var i in deskKeyboardShortcutsStr) { if (deskKeyboardShortcutsStr[i] != "") { deskKeyboardShortcuts.push(parseInt(deskKeyboardShortcutsStr[i])); } }
+            updateDeskShortcutKeys();
             deskUpdateShortcutList();
         }
 
@@ -11120,6 +11218,21 @@
             p13setActions();
         }
 
+        function p13openfilefolder() { 
+            setDialogMode(2, "Open File/Folder", 3, p13openfilefolderEx, "Are you sure you want to open this file/folder on the remote devices desktop ?");
+        }
+        function p13openfilefolderEx() {
+            var openfilefolder = "", checkboxes = document.getElementsByName('fd');
+            for (var i = 0; i < checkboxes.length; i++) {
+                console.log(checkboxes[i]);
+                if (checkboxes[i].checked) {
+                    openfilefolder = (isWindowsNode(currentNode) ? '' : '/') + p13filetreelocation.join(isWindowsNode(currentNode) ? '\\' : '/') + (isWindowsNode(currentNode) ? '\\' : '/') + p13filetree.dir[checkboxes[i].value].n;
+                }
+            }
+            if (openfilefolder == "") return;
+            files.sendText({ action: 'open', reqid: 1, path: openfilefolder, dir: (p13getFileSelDirCount() == 1) ? true : false });
+        }
+
         function p13gotofolder() {
             setDialogMode(2, "Go To Folder", 3, p13gotofolderEx, '<input type=text id=p13folderinput style=width:100% placeholder="'+(isWindowsNode(currentNode) ? 'C:\\' : '/var/www')+'" />');
             focusTextBox('p13folderinput');
@@ -11216,6 +11329,7 @@
                 QE('p13PasteButton', false);
                 QE('p13GoToFolderButton', false);
                 QE('p13DownloadButton', false);
+                QE('p13OpenButton', false);
             } else {
                 var cc = p13getFileSelCount(), tc = p13getFileCount(), sfc = p13getFileSelCount(false); // In order: number of entires selected, number of total entries, number of selected entires that are files (not folders)
                 var winAgent = ((currentNode.agent.id > 0) && (currentNode.agent.id < 5)) || (currentNode.agent.id == 14)|| (currentNode.agent.id == 34);
@@ -11234,6 +11348,7 @@
                 QE('p13UnzipButton', advancedFeatures && (cc == 1) && (sfc == 1) && ((p13filetreelocation.length > 0) || (winAgent == false)) && p13getFileSelAllowedExt('.zip'));
                 QE('p13PasteButton', advancedFeatures && ((p13filetreelocation.length > 0) || (winAgent == false)) && ((p13clipboard != null) && (p13clipboard.length > 0)));
                 QE('p13GoToFolderButton', true);
+                QE('p13OpenButton', (cc == 1));
                 QE('p13DownloadButton', advancedFeatures && (cc > 0) && (cc == sfc) && ((p13filetreelocation.length > 0) || (winAgent == false)));
             }
             var filesState = ((files != null) && (files.state != 0));
@@ -11618,7 +11733,7 @@
                 if (start >= data.byteLength) {
                     files.sendText(JSON.stringify({ action: 'uploaddone', reqid: uploadFile.xfilePtr }));
                 } else {
-                    var end = uploadFile.xptr + 16384;
+                    var end = uploadFile.xptr + 65565;
                     if (end > data.byteLength) { if (dataPriming == true) { return; } end = data.byteLength; }
                     var dataslice = new Uint8Array(data.slice(start, end))
                     if ((dataslice[0] == 123) || (dataslice[0] == 0)) {
@@ -11634,7 +11749,7 @@
             } else if (uploadFile.xfile) {
                 if (uploadFile.xreader != null) return; // Data reading already in process
                 if (uploadFile.xptr >= uploadFile.xfile.size) return;
-                var end = uploadFile.xptr + 16384;
+                var end = uploadFile.xptr + 65565;
                 if (end > uploadFile.xfile.size) { if (dataPriming == true) { return; } end = uploadFile.xfile.size; }
                 uploadFile.xreader = new FileReader();
                 uploadFile.xreader.onerror = function (err) { console.log(err); }
@@ -11714,7 +11829,11 @@
         }
 
         function refreshDeviceEvents() {
-            meshserver.send({ action: 'events', nodeid: currentNode._id, limit: parseInt(p16limitdropdown.value) });
+            if (p16filterevents.value != "") {
+                meshserver.send({ action: 'events', nodeid: currentNode._id, limit: parseInt(p16limitdropdown.value), filter: p16filterevents.value });
+            } else {
+                meshserver.send({ action: 'events', nodeid: currentNode._id, limit: parseInt(p16limitdropdown.value) });
+            }
         }
 
         function showEventDetails(h, mode) {
@@ -11861,28 +11980,12 @@
                 }
                 if(hardware.linux && hardware.linux.LastBootUpTime){
                     var lastBootUpTime = new Date(hardware.linux.LastBootUpTime);
-                    var thedate = {
-                        year: lastBootUpTime.getFullYear(),
-                        month: lastBootUpTime.getMonth(),
-                        day: lastBootUpTime.getDate(),
-                        hours: lastBootUpTime.getHours(),
-                        minutes: lastBootUpTime.getMinutes(),
-                        seconds: lastBootUpTime.getSeconds()
-                    };
-                    const date = printDateTime(new Date(thedate.year, thedate.month, thedate.day, thedate.hours, thedate.minutes, thedate.seconds));
+                    const date = printDateTime(lastBootUpTime);
                     x += addDetailItem("Last Boot Up Time", date);
                 }
                 if(hardware.darwin && hardware.darwin.LastBootUpTime){
                     var lastBootUpTime = new Date(hardware.darwin.LastBootUpTime * 1000); // must times by 1000 even tho timestamp is correct?
-                    var thedate = {
-                        year: lastBootUpTime.getFullYear(),
-                        month: lastBootUpTime.getMonth(),
-                        day: lastBootUpTime.getDate(),
-                        hours: lastBootUpTime.getHours(),
-                        minutes: lastBootUpTime.getMinutes(),
-                        seconds: lastBootUpTime.getSeconds()
-                    };
-                    const date = printDateTime(new Date(thedate.year, thedate.month, thedate.day, thedate.hours, thedate.minutes, thedate.seconds));
+                    const date = printDateTime(lastBootUpTime);
                     x += addDetailItem("Last Boot Up Time", date);
                 }
                 if (x != '') { sections.push({ name: "Operating System", html: x, img: 'software64.png'}); }
@@ -11934,6 +12037,7 @@
                 if (hardware.mobile.bootloader) { x += addDetailItem("Bootloader", EscapeHtml(hardware.mobile.bootloader), s); }
                 if (hardware.mobile.id) { x += addDetailItem("Identifier", EscapeHtml(hardware.mobile.id), s); }
                 if (hardware.mobile.host) { x += addDetailItem("Hostname", EscapeHtml(hardware.mobile.host), s); }
+                if (hardware.mobile.androidapi && hardware.mobile.androidrelease) { x += addDetailItem("Android Version", EscapeHtml(hardware.mobile.androidrelease + ', API Level ' + hardware.mobile.androidapi), s); }
                 if (x != '') { sections.push({ name: "Mobile Device", html: x, img: 'mobile64.png'}); }
             }
 
@@ -12205,6 +12309,62 @@
                         bitlockerState = bitlockerState.join(' - ');
                         if (m.recoveryPassword) { bitlockerState += addKeyLink('', 'deviceDetailsShowBitlockerInfo(\"' + encodeURIComponentEx(i) + '\",\"' + encodeURIComponentEx(m.identifier) + '\",\"' + encodeURIComponentEx(m.recoveryPassword) + '\")'); }
                         x += addDetailItem("BitLocker", bitlockerState, s);
+                    }
+                    x += '</div>';
+                }
+                if (x != '') { sections.push({ name: "Storage Volumes", html: '<table style=width:100%>' + x + '</table>', img: 'storage64.png'}); }
+            }
+
+            // Linux Volumes
+            if (hardware.linux && hardware.linux.volumes) {
+                var x = '';
+                for (var i in hardware.linux.volumes) {
+                    var m = hardware.linux.volumes[i];
+                    if(m.mount_point.startsWith('/var/lib/docker/overlay2')) continue;
+                    x += '<tr><td><div class=style10 style=border-radius:5px;padding:8px>';
+                    x += '<div style=margin-bottom:3px><b>' + m.mount_point + '</b></div>';
+                    if (m.size) {
+                        var sizes = ['KB', 'MB', 'GB', 'TB'];
+                        var j = parseInt(Math.floor(Math.log(Math.abs(m.size)) / Math.log(1024)), 10);
+                        var fsize = (j === 0 ? `${m.size} ${sizes[j]}` : `${(m.size / (1024 ** j)).toFixed(2)} ${sizes[j]}`);
+                        x += addDetailItem("Capacity", EscapeHtml(fsize), s);
+                    }
+                    if (m.available) {
+                        if (Math.abs(m.available) == 0) {
+                            var fsize = `0 KB`;
+                        } else {
+                            var sizes = ['KB', 'MB', 'GB', 'TB'];
+                            var j = parseInt(Math.floor(Math.log(Math.abs(m.available)) / Math.log(1024)), 10);
+                            var fsize = (j === 0 ? `${m.available} ${sizes[j]}` : `${(m.available / (1024 ** j)).toFixed(2)} ${sizes[j]}`);
+                        }
+                        x += addDetailItem("Capacity Remaining", EscapeHtml(fsize), s);
+                    }
+                    if (m.type) {
+                        var type = (m.removable == true ? "Removable" : (m.cdrom == true ? "CD-ROM" : ''));
+                        x += addDetailItem("File System", (type != '' ? (type + ' / ') : '') + (m.type == 'Unknown' ? "Unknown" : EscapeHtml(m.type)), s);
+                    }
+                    x += '</div>';
+                }
+                if (x != '') { sections.push({ name: "Storage Volumes", html: '<table style=width:100%>' + x + '</table>', img: 'storage64.png'}); }
+            }
+
+            // MacOS Volumes
+            if (hardware.darwin && hardware.darwin.volumes) {
+                var x = '';
+                for (var i in hardware.darwin.volumes) {
+                    var m = hardware.darwin.volumes[i];
+                    if(m.mount_point.startsWith('/var/lib/docker/overlay2')) continue;
+                    x += '<tr><td><div class=style10 style=border-radius:5px;padding:8px>';
+                    x += '<div style=margin-bottom:3px><b>' + m.mount_point + '</b></div>';
+                    if (m.size) {
+                        x += addDetailItem("Capacity", EscapeHtml(m.size), s);
+                    }
+                    if (m.available) {
+                        x += addDetailItem("Capacity Remaining", EscapeHtml(m.available), s);
+                    }
+                    if (m.type) {
+                        var type = (m.removable == true ? "Removable" : (m.cdrom == true ? "CD-ROM" : ''));
+                        x += addDetailItem("File System", (type != '' ? (type + ' / ') : '') + (m.type == 'Unknown' ? "Unknown" : EscapeHtml(m.type)), s);
                     }
                     x += '</div>';
                 }
@@ -14977,7 +15137,8 @@
             155: "Denied user login from {0}, {1}, {2}",
             156: "Verified messaging account of user {0}",
             157: "Removed messaging account of user {0}",
-            158: "Displaying alert box, title=\"{0}\", message=\"{1}\""
+            158: "Displaying alert box, title=\"{0}\", message=\"{1}\"",
+            159: "Device Powered On"
         };
 
         var eventsShortMessageId = {
@@ -15063,7 +15224,11 @@
         }
 
         function refreshEvents() {
-            meshserver.send({ action: 'events', limit: parseInt(p3limitdropdown.value) });
+            if (p3filterevents.value != "") {
+                meshserver.send({ action: 'events', limit: parseInt(p3limitdropdown.value), filter: p3filterevents.value });
+            } else {
+                meshserver.send({ action: 'events', limit: parseInt(p3limitdropdown.value) });
+            }
         }
 
         function p3showReportDialog() {
@@ -15482,7 +15647,12 @@
 
         function p4batchAccountCreate() {
             if (xxdialogMode) return;
-            var x = "Create many accounts at once by importing a JSON file with the following format:" + '<br /><pre>[\r\n {"user":"x1","pass":"x","email":"x1@x"},\r\n {"user":"x2","pass":"x","resetNextLogin":true}\r\n]</pre><input style=width:370px type=file id=d4importFile accept=".json" onchange=p4batchAccountCreateValidate() />';
+            var x = "Create many accounts at once by importing a JSON or CSV file" + '<br /><br />';
+            x += "JSON file format is as follows:" + '<br />';
+            x += '<pre>[\r\n {"user":"x1","pass":"x","email":"x1@x"},\r\n {"user":"x2","pass":"x","resetNextLogin":true}\r\n]</pre><br />';
+            x += "CSV file format is as follows:" + '<br />';
+            x += '<pre>user,pass,email,resetNextLogin\r\nx1,x,x1@x,\r\nx2,x,,true\r\n</pre><br />';
+            x += '<input style=width:370px type=file id=d4importFile accept=".json,.csv" onchange=p4batchAccountCreateValidate() />';
             setDialogMode(2, "User Account Import", 3, p4batchAccountCreateEx, x);
             QE('idx_dlgOkButton', false);
         }
@@ -15495,17 +15665,60 @@
             var fr = new FileReader();
             fr.onload = function (r) {
                 var j = null;
-                try { j = JSON.parse(r.target.result); } catch (ex) { setDialogMode(2, "User Account Import", 1, null, format("Invalid JSON file: {0}.", ex)); return; }
-                if ((j != null) && (Array.isArray(j))) {
-                    var ok = true;
-                    for (var i in j) {
-                        if ((typeof j[i].user != 'string') || (j[i].user.length < 1) || (j[i].user.length > 64)) { ok = false; }
-                        if ((typeof j[i].pass != 'string') || (j[i].pass.length < 1) || (j[i].pass.length > 256)) { ok = false; }
-                        if (checkPasswordRequirements(j[i].pass, passRequirements) == false) { ok = false; }
-                        if ((j[i].email != null) && ((typeof j[i].email != 'string') || (j[i].email.length < 1) || (j[i].email.length > 128))) { ok = false; }
+                if (Q('d4importFile').value.endsWith('.csv')) {
+                    const csvData = r.target.result;
+                    const lines = csvData.split('\n');
+                    const headers = lines[0].trim().split(',');
+                    const jsonArray = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const currentLine = lines[i].trim();
+                        if (currentLine === "") continue; // Skip blank lines
+                        const lineArray = currentLine.split(',');
+                        // Check if any non-empty field exists
+                        let hasNonEmptyField = false;
+                        for (let j = 0; j < lineArray.length; j++) {
+                            if (lineArray[j].trim() !== "") {
+                                hasNonEmptyField = true;
+                                break;
+                            }
+                        }
+                        // If no non-empty field exists, skip adding this object
+                        if (!hasNonEmptyField) continue;
+                        const obj = {};
+                        for (let j = 0; j < headers.length; j++) {
+                            // Only include columns with non-empty headers and non-empty values
+                            const value = lineArray[j].trim();
+                            if (headers[j].trim() !== "" && value !== "") {
+                                // Convert values "true" to true
+                                obj[headers[j]] = value.toLowerCase() === "true" ? true : value;
+                            }
+                        }
+                        jsonArray.push(obj);
                     }
-                    if (ok == false) { setDialogMode(2, "User Account Import", 1, null, "Invalid JSON file format."); } else { meshserver.send({ action: 'adduserbatch', users: j }); }
-                } else { setDialogMode(2, "User Account Import", 1, null, "Invalid JSON file format."); }
+                    j = jsonArray;
+                    if ((j != null) && (Array.isArray(j))) {
+                        var ok = true;
+                        for (var i in j) {
+                            if ((typeof j[i].user != 'string') || (j[i].user.length < 1) || (j[i].user.length > 64)) { ok = false; }
+                            if ((typeof j[i].pass != 'string') || (j[i].pass.length < 1) || (j[i].pass.length > 256)) { ok = false; }
+                            if (checkPasswordRequirements(j[i].pass, passRequirements) == false) { ok = false; }
+                            if ((j[i].email != null) && ((typeof j[i].email != 'string') || (j[i].email.length < 1) || (j[i].email.length > 128))) { ok = false; }
+                        }
+                        if (ok == false) { setDialogMode(2, "User Account Import", 1, null, "Invalid CSV file format."); } else { meshserver.send({ action: 'adduserbatch', users: j }); }
+                    } else { setDialogMode(2, "User Account Import", 1, null, "Invalid CSV file format."); }
+                } else {
+                    try { j = JSON.parse(r.target.result); } catch (ex) { setDialogMode(2, "User Account Import", 1, null, format("Invalid JSON file: {0}.", ex)); return; }
+                    if ((j != null) && (Array.isArray(j))) {
+                        var ok = true;
+                        for (var i in j) {
+                            if ((typeof j[i].user != 'string') || (j[i].user.length < 1) || (j[i].user.length > 64)) { ok = false; }
+                            if ((typeof j[i].pass != 'string') || (j[i].pass.length < 1) || (j[i].pass.length > 256)) { ok = false; }
+                            if (checkPasswordRequirements(j[i].pass, passRequirements) == false) { ok = false; }
+                            if ((j[i].email != null) && ((typeof j[i].email != 'string') || (j[i].email.length < 1) || (j[i].email.length > 128))) { ok = false; }
+                        }
+                        if (ok == false) { setDialogMode(2, "User Account Import", 1, null, "Invalid JSON file format."); } else { meshserver.send({ action: 'adduserbatch', users: j }); }
+                    } else { setDialogMode(2, "User Account Import", 1, null, "Invalid JSON file format."); }
+                }
             };
             fr.readAsText(Q('d4importFile').files[0]);
         }
@@ -16939,7 +17152,11 @@
         }
 
         function refreshUsersEvents() {
-            meshserver.send({ action: 'events', limit: parseInt(p31limitdropdown.value), userid: currentUser._id });
+            if (p31filterevents.value != "") {
+                meshserver.send({ action: 'events', limit: parseInt(p31limitdropdown.value), userid: currentUser._id, filter: p31filterevents.value });
+            } else {
+                meshserver.send({ action: 'events', limit: parseInt(p31limitdropdown.value), userid: currentUser._id });
+            }
         }
 
 
@@ -17237,7 +17454,7 @@
 
             var lastWeek = new Date();
             lastWeek.setDate(lastWeek.getDate() - 7);
-            var rangeTime = flatpickr('#d2timeRangeSelector', { mode: 'range', enableTime: true, maxDate: new Date(), defaultDate: [ lastWeek, new Date() ] });
+            var rangeTime = flatpickr('#d2timeRangeSelector', { mode: 'range', enableTime: true, maxDate: new Date(), defaultDate: [ lastWeek, new Date() ], minuteIncrement: 1 });
             xxdialogTag = rangeTime;
         }
 
@@ -18860,6 +19077,9 @@
             var useridsplit = userid.split('/'), userid2 = useridsplit[0] + '/' + useridsplit[1] + '/' + useridsplit[2], guestname = '';
             if ((useridsplit.length == 4) && (useridsplit[3].startsWith('guest:'))) { guestname = ' - ' + decode_utf8(atob(useridsplit[3].substring(6))); }
             if (users && users[userid2] != null) { if (users[userid2].realname != null) return (users[userid2].realname + guestname); else return (users[userid2].name + guestname); }
+            if (currentNode && currentNode.links && currentNode.links[userid] && currentNode.links[userid].name != null) { return (currentNode.links[userid].name + guestname); }
+            if (userid == userinfo._id) { return (userinfo.name + guestname); }
+            if (nodes) { for (var a in nodes) { if (nodes[a].links) { for (var b in nodes[a].links) { if (nodes[a].links[b].name && b == userid) return (nodes[a].links[b].name + guestname); } } } }
             return (useridsplit[2] + guestname);
         }
         function round(value, precision) { var multiplier = Math.pow(10, precision || 0); return Math.round(value * multiplier) / multiplier; }
