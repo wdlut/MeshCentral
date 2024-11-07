@@ -209,9 +209,13 @@ function macos_memUtilization()
     {
         var usage = lines[0].split(':')[1];
         var bdown = usage.split(',');
-
-        mem.MemTotal = parseInt(bdown[0].trim().split(' ')[0]);
-        mem.MemFree = parseInt(bdown[1].trim().split(' ')[0]);
+        if (bdown.length > 2){ // new style - PhysMem: 5750M used (1130M wired, 634M compressor), 1918M unused.
+            mem.MemFree = parseInt(bdown[2].trim().split(' ')[0]);
+        } else { // old style - PhysMem: 6683M used (1606M wired), 9699M unused.
+            mem.MemFree = parseInt(bdown[1].trim().split(' ')[0]);
+        }
+        mem.MemUsed = parseInt(bdown[0].trim().split(' ')[0]);
+        mem.MemTotal = (mem.MemFree + mem.MemUsed);
         mem.percentFree = ((mem.MemFree / mem.MemTotal) * 100);//.toFixed(2);
         mem.percentConsumed = (((mem.MemTotal - mem.MemFree) / mem.MemTotal) * 100);//.toFixed(2);
         return (mem);
@@ -225,25 +229,14 @@ function macos_memUtilization()
 function windows_thermals()
 {
     var ret = [];
-    child = require('child_process').execFile(process.env['windir'] + '\\System32\\wbem\\wmic.exe', ['wmic', '/namespace:\\\\root\\wmi', 'PATH', 'MSAcpi_ThermalZoneTemperature', 'get', 'CurrentTemperature,InstanceName', '/FORMAT:CSV']);
-    child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-    child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
-    child.waitExit();
-    if(child.stdout.str.trim()!='')
-    {
-        var lines = child.stdout.str.trim().split('\r\n');
-        var keys = lines[0].trim().split(',');
-        for (var i = 1; i < lines.length; ++i)
-        {
-            var obj = {};
-            var tokens = lines[i].trim().split(',');
-            for (var key = 0; key < keys.length; ++key)
-            {
-                if (tokens[key]) {  obj[keys[key]] = key==1 ? ((parseFloat(tokens[key]) / 10) - 273.15).toFixed(2) : tokens[key]; }
+    try {
+        ret = require('win-wmi').query('ROOT\\WMI', 'SELECT CurrentTemperature,InstanceName FROM MSAcpi_ThermalZoneTemperature',['CurrentTemperature','InstanceName']);
+        if (ret[0]) {
+            for (var i = 0; i < ret.length; ++i) {
+                ret[i]['CurrentTemperature'] = ((parseFloat(ret[i]['CurrentTemperature']) / 10) - 273.15).toFixed(2);
             }
-            ret.push(obj);
         }
-    }
+    } catch (ex) { }
     return (ret);
 }
 

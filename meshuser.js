@@ -997,6 +997,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                             if (typeof domain.consentmessages.files == 'string') { command.soptions.consentMsgFiles = domain.consentmessages.files; }
                             if ((typeof domain.consentmessages.consenttimeout == 'number') && (domain.consentmessages.consenttimeout > 0)) { command.soptions.consentTimeout = domain.consentmessages.consenttimeout; }
                             if (domain.consentmessages.autoacceptontimeout === true) { command.soptions.consentAutoAccept = true; }
+                            if (domain.consentmessages.oldstyle === true) { command.soptions.oldStyle = true; }
                         }
                         if (typeof domain.notificationmessages == 'object') {
                             if (typeof domain.notificationmessages.title == 'string') { command.soptions.notifyTitle = domain.notificationmessages.title; }
@@ -2554,77 +2555,98 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                 }
             case 'addlocaldevice':
                 {
-                    if (common.validateString(command.meshid, 8, 134) == false) break; // Check meshid
-                    if ((command.meshid.split('/').length != 3) || (command.meshid.split('/')[1] != domain.id)) return; // Invalid domain, operation only valid for current domain
-                    if (common.validateString(command.devicename, 1, 256) == false) break; // Check device name
-                    if (common.validateString(command.hostname, 1, 256) == false) break; // Check hostname
-                    if (typeof command.type != 'number') break; // Type must be a number
-                    if ((command.type != 4) && (command.type != 6) && (command.type != 29)) break; // Check device type
-
-                    // Get the mesh
-                    mesh = parent.meshes[command.meshid];
-                    if (mesh) {
-                        if (mesh.mtype != 3) return; // This operation is only allowed for mesh type 3, local device agentless mesh.
-
-                        // Check if this user has rights to do this
-                        if ((parent.GetMeshRights(user, mesh) & MESHRIGHT_MANAGECOMPUTERS) == 0) return;
-
-                        // Create a new nodeid
-                        parent.crypto.randomBytes(48, function (err, buf) {
-                            // Create the new node
-                            nodeid = 'node/' + domain.id + '/' + buf.toString('base64').replace(/\+/g, '@').replace(/\//g, '$');
-                            var device = { type: 'node', _id: nodeid, meshid: command.meshid, mtype: 3, icon: 1, name: command.devicename, host: command.hostname, domain: domain.id, agent: { id: command.type, caps: 0 } };
-                            db.Set(device);
-
-                            // Event the new node
-                            parent.parent.DispatchEvent(parent.CreateMeshDispatchTargets(command.meshid, [nodeid]), obj, { etype: 'node', userid: user._id, username: user.name, action: 'addnode', node: parent.CloneSafeNode(device), msgid: 84, msgArgs: [command.devicename, mesh.name], msg: 'Added device ' + command.devicename + ' to device group ' + mesh.name, domain: domain.id });
-                        });
+                    var err = null;
+                    // Perform input validation
+                    try {
+                        if (common.validateString(command.meshid, 8, 134) == false) { err = "Invalid device group id"; } // Check meshid
+                        if (common.validateString(command.devicename, 1, 256) == false) { err = "Invalid devicename"; } // Check device name
+                        if (common.validateString(command.hostname, 1, 256) == false) { err = "Invalid hostname"; } // Check hostname
+                        if (typeof command.type != 'number') { err = "Invalid type"; } // Type must be a number
+                        if ((command.type != 4) && (command.type != 6) && (command.type != 29)) { err = "Invalid type"; } // Check device type
+                        else {
+                            if (command.meshid.indexOf('/') == -1) { command.meshid = 'mesh/' + domain.id + '/' + command.meshid; }
+                            mesh = parent.meshes[command.meshid];
+                            if (mesh == null) { err = "Unknown device group"; }
+                            if (mesh.mtype != 3) { err = "Local device agentless mesh only allowed" } // This operation is only allowed for mesh type 3, local device agentless mesh.
+                            else if ((parent.GetMeshRights(user, mesh) & MESHRIGHT_MANAGECOMPUTERS) == 0) { err = "Permission denied"; }
+                            else if ((command.meshid.split('/').length != 3) || (command.meshid.split('/')[1] != domain.id)) { err = "Invalid domain"; } // Invalid domain, operation only valid for current domain
+                        }
+                    } catch (ex) { console.log(ex); err = "Validation exception: " + ex; }
+                    // Handle any errors
+                    if (err != null) {
+                        if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'changeDeviceMesh', responseid: command.responseid, result: err })); } catch (ex) { } }
+                        break;
                     }
 
+                    // Create a new nodeid
+                    parent.crypto.randomBytes(48, function (err, buf) {
+                        // Create the new node
+                        nodeid = 'node/' + domain.id + '/' + buf.toString('base64').replace(/\+/g, '@').replace(/\//g, '$');
+                        var device = { type: 'node', _id: nodeid, meshid: command.meshid, mtype: 3, icon: 1, name: command.devicename, host: command.hostname, domain: domain.id, agent: { id: command.type, caps: 0 } };
+                        db.Set(device);
+
+                        // Event the new node
+                        parent.parent.DispatchEvent(parent.CreateMeshDispatchTargets(command.meshid, [nodeid]), obj, { etype: 'node', userid: user._id, username: user.name, action: 'addnode', node: parent.CloneSafeNode(device), msgid: 84, msgArgs: [command.devicename, mesh.name], msg: 'Added device ' + command.devicename + ' to device group ' + mesh.name, domain: domain.id });
+                        // Send response if required
+                        if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'addlocaldevice', responseid: command.responseid, result: 'ok' })); } catch (ex) { } }
+                    });
                     break;
                 }
             case 'addamtdevice':
                 {
                     if (args.wanonly == true) return; // This is a WAN-only server, local Intel AMT computers can't be added
-                    if (common.validateString(command.meshid, 8, 134) == false) break; // Check meshid
-                    if ((command.meshid.split('/').length != 3) || (command.meshid.split('/')[1] != domain.id)) return; // Invalid domain, operation only valid for current domain
-                    if (common.validateString(command.devicename, 1, 256) == false) break; // Check device name
-                    if (common.validateString(command.hostname, 1, 256) == false) break; // Check hostname
-                    if (common.validateString(command.amtusername, 0, 16) == false) break; // Check username
-                    if (common.validateString(command.amtpassword, 0, 16) == false) break; // Check password
-                    if (command.amttls == '0') { command.amttls = 0; } else if (command.amttls == '1') { command.amttls = 1; } // Check TLS flag
-                    if ((command.amttls != 1) && (command.amttls != 0)) break;
+                    var err = null;
+                    // Perform input validation
+                    try {
+                        if (common.validateString(command.meshid, 8, 134) == false) { err = "Invalid device group id"; } // Check meshid
+                        if (common.validateString(command.devicename, 1, 256) == false) { err = "Invalid devicename"; } // Check device name
+                        if (common.validateString(command.hostname, 1, 256) == false) { err = "Invalid hostname"; } // Check hostname
+                        if (common.validateString(command.amtusername, 0, 16) == false) { err = "Invalid amtusername"; } // Check username
+                        if (common.validateString(command.amtpassword, 0, 16) == false) { err = "Invalid amtpassword"; } // Check password
+                        if (command.amttls == '0') { command.amttls = 0; } else if (command.amttls == '1') { command.amttls = 1; } // Check TLS flag
+                        if ((command.amttls != 1) && (command.amttls != 0)) { err = "Invalid amttls"; }
+                        else {
+                            if (command.meshid.indexOf('/') == -1) { command.meshid = 'mesh/' + domain.id + '/' + command.meshid; }
+                            // Get the mesh
+                            mesh = parent.meshes[command.meshid];
+                            if (mesh == null) { err = "Unknown device group"; }
+                            if (mesh.mtype != 1) { err = "Intel AMT agentless mesh only allowed"; } // This operation is only allowed for mesh type 1, Intel AMT agentless mesh.
+                            // Check if this user has rights to do this
+                            else if ((parent.GetMeshRights(user, mesh) & MESHRIGHT_MANAGECOMPUTERS) == 0) { err = "Permission denied"; }
+                            else if ((command.meshid.split('/').length != 3) || (command.meshid.split('/')[1] != domain.id)) { err = "Invalid domain"; } // Invalid domain, operation only valid for current domain
+                        }
+                    } catch (ex) { console.log(ex); err = "Validation exception: " + ex; }
+
+                    // Handle any errors
+                    if (err != null) {
+                        if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'changeDeviceMesh', responseid: command.responseid, result: err })); } catch (ex) { } }
+                        break;
+                    }
 
                     // If we are in WAN-only mode, hostname is not used
                     if ((args.wanonly == true) && (command.hostname)) { delete command.hostname; }
 
-                    // Get the mesh
-                    mesh = parent.meshes[command.meshid];
-                    if (mesh) {
-                        if (mesh.mtype != 1) return; // This operation is only allowed for mesh type 1, Intel AMT agentless mesh.
+                    // Create a new nodeid
+                    parent.crypto.randomBytes(48, function (err, buf) {
+                        // Create the new node
+                        nodeid = 'node/' + domain.id + '/' + buf.toString('base64').replace(/\+/g, '@').replace(/\//g, '$');
+                        var device = { type: 'node', _id: nodeid, meshid: command.meshid, mtype: 1, icon: 1, name: command.devicename, host: command.hostname, domain: domain.id, intelamt: { user: command.amtusername, pass: command.amtpassword, tls: command.amttls } };
 
-                        // Check if this user has rights to do this
-                        if ((parent.GetMeshRights(user, mesh) & MESHRIGHT_MANAGECOMPUTERS) == 0) return;
+                        // Add optional feilds
+                        if (common.validateInt(command.state, 0, 3)) { device.intelamt.state = command.state; }
+                        if (common.validateString(command.ver, 1, 16)) { device.intelamt.ver = command.ver; }
+                        if (common.validateString(command.hash, 1, 256)) { device.intelamt.hash = command.hash; }
+                        if (common.validateString(command.realm, 1, 256)) { device.intelamt.realm = command.realm; }
 
-                        // Create a new nodeid
-                        parent.crypto.randomBytes(48, function (err, buf) {
-                            // Create the new node
-                            nodeid = 'node/' + domain.id + '/' + buf.toString('base64').replace(/\+/g, '@').replace(/\//g, '$');
-                            var device = { type: 'node', _id: nodeid, meshid: command.meshid, mtype: 1, icon: 1, name: command.devicename, host: command.hostname, domain: domain.id, intelamt: { user: command.amtusername, pass: command.amtpassword, tls: command.amttls } };
+                        // Save the device to the database
+                        db.Set(device);
 
-                            // Add optional feilds
-                            if (common.validateInt(command.state, 0, 3)) { device.intelamt.state = command.state; }
-                            if (common.validateString(command.ver, 1, 16)) { device.intelamt.ver = command.ver; }
-                            if (common.validateString(command.hash, 1, 256)) { device.intelamt.hash = command.hash; }
-                            if (common.validateString(command.realm, 1, 256)) { device.intelamt.realm = command.realm; }
+                        // Event the new node
+                        parent.parent.DispatchEvent(parent.CreateMeshDispatchTargets(command.meshid, [nodeid]), obj, { etype: 'node', userid: user._id, username: user.name, action: 'addnode', node: parent.CloneSafeNode(device), msgid: 84, msgArgs: [command.devicename, mesh.name], msg: 'Added device ' + command.devicename + ' to device group ' + mesh.name, domain: domain.id });
+                        // Send response if required
+                        if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'addamtdevice', responseid: command.responseid, result: 'ok' })); } catch (ex) { } }
+                    });
 
-                            // Save the device to the database
-                            db.Set(device);
-
-                            // Event the new node
-                            parent.parent.DispatchEvent(parent.CreateMeshDispatchTargets(command.meshid, [nodeid]), obj, { etype: 'node', userid: user._id, username: user.name, action: 'addnode', node: parent.CloneSafeNode(device), msgid: 84, msgArgs: [command.devicename, mesh.name], msg: 'Added device ' + command.devicename + ' to device group ' + mesh.name, domain: domain.id });
-                        });
-                    }
                     break;
                 }
             case 'scanamtdevice':
@@ -2966,13 +2988,19 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                                         return;
                                     }
 
-                                    // Send the commands to the agent
-                                    var agent = parent.wsagents[node._id];
-                                    if ((agent != null) && (agent.authenticated == 2) && (agent.agentInfo != null)) {
-                                        try { agent.send(JSON.stringify({ action: 'msg', type: 'console', value: command.cmds, rights: rights, sessionid: ws.sessionId })); } catch (ex) { }
+                                    var theCommand = { action: 'msg', type: 'console', value: command.cmds, rights: rights, sessionid: ws.sessionId };
+                                    if (parent.parent.multiServer != null) { // peering setup
+                                        parent.parent.multiServer.DispatchMessage({ action: 'agentCommand', nodeid: node._id, command: theCommand});
                                         if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'OK' })); } catch (ex) { } }
                                     } else {
-                                        if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'Agent not connected' })); } catch (ex) { } }
+                                        // Send the commands to the agent
+                                        var agent = parent.wsagents[node._id];
+                                        if ((agent != null) && (agent.authenticated == 2) && (agent.agentInfo != null)) {
+                                            try { agent.send(JSON.stringify(theCommand)); } catch (ex) { }
+                                            if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'OK' })); } catch (ex) { } }
+                                        } else {
+                                            if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'Agent not connected' })); } catch (ex) { } }
+                                        }
                                     }
                                 } else {
                                     // This is a standard (bash/shell/powershell) command.
@@ -2983,40 +3011,50 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                                         return;
                                     }
 
-                                    // Get the agent and run the commands
-                                    var agent = parent.wsagents[node._id];
-                                    if ((agent != null) && (agent.authenticated == 2) && (agent.agentInfo != null)) {
-                                        // Check if this agent is correct for this command type
-                                        // command.type 1 = Windows Command, 2 = Windows PowerShell, 3 = Linux/BSD/macOS
-                                        var commandsOk = false;
-                                        if ((agent.agentInfo.agentId > 0) && (agent.agentInfo.agentId < 5)) {
-                                            // Windows Agent
-                                            if ((command.type == 1) || (command.type == 2)) { commandsOk = true; }
-                                            else if (command.type === 0) { command.type = 1; commandsOk = true; } // Set the default type of this agent
-                                        } else {
-                                            // Non-Windows Agent
-                                            if (command.type == 3) { commandsOk = true; }
-                                            else if (command.type === 0) { command.type = 3; commandsOk = true; } // Set the default type of this agent
-                                        }
-                                        if (commandsOk == true) {
+                                    if (typeof command.reply != 'boolean') command.reply = false;
+                                    if (typeof command.responseid != 'string') command.responseid = null;
+                                    var msgid = 24; // "Running commands"
+                                    if (command.type == 1) { msgid = 99; } // "Running commands as user"
+                                    if (command.type == 2) { msgid = 100; } // "Running commands as user if possible"
+                                    // Check if this agent is correct for this command type
+                                    // command.type 1 = Windows Command, 2 = Windows PowerShell, 3 = Linux/BSD/macOS
+                                    var commandsOk = false;
+                                    if ((node.agent.id > 0) && (node.agent.id < 5)) {
+                                        // Windows Agent
+                                        if ((command.type == 1) || (command.type == 2)) { commandsOk = true; }
+                                        else if (command.type === 0) { command.type = 1; commandsOk = true; } // Set the default type of this agent
+                                    } else {
+                                        // Non-Windows Agent
+                                        if (command.type == 3) { commandsOk = true; }
+                                        else if (command.type === 0) { command.type = 3; commandsOk = true; } // Set the default type of this agent
+                                    }
+                                    if (commandsOk == true) {
+                                        var theCommand = { action: 'runcommands', type: command.type, cmds: command.cmds, runAsUser: command.runAsUser, reply: command.reply, responseid: command.responseid };
+                                        if (parent.parent.multiServer != null) { // peering setup
                                             // Send the commands to the agent
-                                            if (typeof command.reply != 'boolean') command.reply = false;
-                                            if (typeof command.responseid != 'string') command.responseid = null;
-                                            try { agent.send(JSON.stringify({ action: 'runcommands', type: command.type, cmds: command.cmds, runAsUser: command.runAsUser, reply: command.reply, responseid: command.responseid })); } catch (ex) { }
+                                            parent.parent.multiServer.DispatchMessage({ action: 'agentCommand', nodeid: node._id, command: theCommand});
                                             if (command.responseid != null && command.reply == false) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'OK' })); } catch (ex) { } }
-
                                             // Send out an event that these commands where run on this device
                                             var targets = parent.CreateNodeDispatchTargets(node.meshid, node._id, ['server-users', user._id]);
-                                            var msgid = 24; // "Running commands"
-                                            if (command.type == 1) { msgid = 99; } // "Running commands as user"
-                                            if (command.type == 2) { msgid = 100; } // "Running commands as user if possible"
                                             var event = { etype: 'node', userid: user._id, username: user.name, nodeid: node._id, action: 'runcommands', msg: 'Running commands', msgid: msgid, cmds: command.cmds, cmdType: command.type, runAsUser: command.runAsUser, domain: domain.id };
-                                            parent.parent.DispatchEvent(targets, obj, event);
-                                        } else {
-                                            if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'Invalid command type' })); } catch (ex) { } }
+                                            parent.parent.multiServer.DispatchEvent(targets, obj, event);
+                                        } else { // normal setup
+                                            // Get the agent and run the commands
+                                            var agent = parent.wsagents[node._id];
+                                            if ((agent != null) && (agent.authenticated == 2) && (agent.agentInfo != null)) {
+                                                // Send the commands to the agent
+                                                try { agent.send(JSON.stringify(theCommand)); } catch (ex) { }
+                                                if (command.responseid != null && command.reply == false) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'OK' })); } catch (ex) { } }
+                                                // Send out an event that these commands where run on this device
+                                                var targets = parent.CreateNodeDispatchTargets(node.meshid, node._id, ['server-users', user._id]);
+                                                var event = { etype: 'node', userid: user._id, username: user.name, nodeid: node._id, action: 'runcommands', msg: 'Running commands', msgid: msgid, cmds: command.cmds, cmdType: command.type, runAsUser: command.runAsUser, domain: domain.id };
+                                                parent.parent.DispatchEvent(targets, obj, event);
+                                            } else {
+                                                if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'Agent not connected' })); } catch (ex) { } }
+                                            }
                                         }
                                     } else {
-                                        if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'Agent not connected' })); } catch (ex) { } }
+                                        if (command.responseid != null) { try { ws.send(JSON.stringify({ action: 'runcommands', responseid: command.responseid, result: 'Invalid command type' })); } catch (ex) { } }
                                     }
                                 }
                             });
@@ -3129,8 +3167,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                                 }
 
                                 if ((command.actiontype >= 300) && (command.actiontype < 400)) {
-                                    if ((command.actiontype != 302) && (command.actiontype != 308) && (command.actiontype < 310) && (command.actiontype > 312)) return; // Invalid action type.
-                                    // Intel AMT power command, actiontype: 2 = Power on, 8 = Power down, 10 = reset, 11 = Power on to BIOS, 12 = Reset to BIOS, 13 = Power on to BIOS with SOL, 14 = Reset to BIOS with SOL
+                                    if ((command.actiontype != 302) && (command.actiontype != 308) && (command.actiontype < 310) && (command.actiontype > 316)) return; // Invalid action type.
+                                    // Intel AMT power command, actiontype: 2 = Power on, 8 = Power down, 10 = reset, 11 = Power on to BIOS, 12 = Reset to BIOS, 13 = Power on to BIOS with SOL, 14 = Reset to BIOS with SOL, 15 = Power on to PXE, 16 = Reset to PXE
                                     parent.parent.DispatchEvent('*', obj, { action: 'amtpoweraction', userid: user._id, username: user.name, nodeids: [node._id], domain: domain.id, nolog: 1, actiontype: command.actiontype - 300 });
                                 } else {
                                     if ((command.actiontype < 2) && (command.actiontype > 4)) return; // Invalid action type.
@@ -6144,7 +6182,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
         parent.db.SetUser(user);
 
         // Event the change
-        var message = { etype: 'user', userid: user._id, username: user.name, account: parent.CloneSafeUser(user), action: 'accountchange', domain: domain.id, msgid: 2, msgArgs: [(oldlang ? oldlang : 'default'), (user.lang ? user.lang : 'default')] };
+        var message = { etype: 'user', userid: user._id, username: user.name, account: parent.CloneSafeUser(user), action: 'accountchange', domain: domain.id, msgid: 3, msgArgs: ['', (oldlang ? oldlang : 'default'), (user.lang ? user.lang : 'default')] };
         if (db.changeStream) { message.noact = 1; } // If DB change stream is active, don't use this event to change the user. Another event will come.
         message.msg = 'Changed language from ' + (oldlang ? oldlang : 'default') + ' to ' + (user.lang ? user.lang : 'default');
 
@@ -6577,7 +6615,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
         const manageAllDeviceGroups = ((user.siteadmin == 0xFFFFFFFF) && (parent.parent.config.settings.managealldevicegroups.indexOf(user._id) >= 0));
         if ((command.devGroup != null) && (manageAllDeviceGroups == false) && ((user.links == null) || (user.links[command.devGroup] == null))) return; // Asking for a device group that is not allowed
 
-        const msgIdFilter = [5, 10, 11, 12, 122, 123, 124, 125, 126];
+        const msgIdFilter = [5, 10, 11, 12, 122, 123, 124, 125, 126, 144];
         switch (command.type) {
             case 1: {
                 remoteSessionReport(command, manageAllDeviceGroups, msgIdFilter);
@@ -7697,6 +7735,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                 // Session length
                 if (((docs[i].msgid >= 10) && (docs[i].msgid <= 12)) && (docs[i].msgArgs != null) && (typeof docs[i].msgArgs == 'object') && (typeof docs[i].msgArgs[3] == 'number')) { entry.length = docs[i].msgArgs[3]; }
                 else if ((docs[i].msgid >= 122) && (docs[i].msgid <= 126) && (docs[i].msgArgs != null) && (typeof docs[i].msgArgs == 'object') && (typeof docs[i].msgArgs[0] == 'number')) { entry.length = docs[i].msgArgs[0]; }
+                else if ((docs[i].msgid == 144) && (docs[i].msgArgs != null) && (typeof docs[i].msgArgs == 'object') && (typeof docs[i].msgArgs[1] == 'number')) { entry.length = docs[i].msgArgs[1]; }
 
                 if (command.groupBy == 1) { // Add entry to per user
                     if (data.groups[docs[i].userid] == null) { data.groups[docs[i].userid] = { entries: [] }; }
@@ -7763,6 +7802,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                 // Session length
                 if (((docs[i].msgid >= 10) && (docs[i].msgid <= 12)) && (docs[i].msgArgs != null) && (typeof docs[i].msgArgs == 'object') && (typeof docs[i].msgArgs[3] == 'number')) { userEntry.length += docs[i].msgArgs[3]; }
                 else if ((docs[i].msgid >= 122) && (docs[i].msgid <= 126) && (docs[i].msgArgs != null) && (typeof docs[i].msgArgs == 'object') && (typeof docs[i].msgArgs[0] == 'number')) { userEntry.length += docs[i].msgArgs[0]; }
+                else if ((docs[i].msgid == 144) && (docs[i].msgArgs != null) && (typeof docs[i].msgArgs == 'object') && (typeof docs[i].msgArgs[1] == 'number')) { userEntry.length += docs[i].msgArgs[1]; }
 
                 // Set the user entry
                 userEntries[docs[i].userid] = userEntry;
