@@ -12,22 +12,19 @@
 ## About
 MeshCentral is a full computer management web site. With MeshCentral, you can run your own web server to remotely manage and control computers on a local network or anywhere on the internet. Once you get the server started, create device group and download and install an agent on each computer you want to manage. A minute later, the new computer will show up on the web site and you can take control of it. MeshCentral includes full web-based remote desktop, terminal and file management capability.
 
-For more information, [visit MeshCentral.com](https://www.meshcentral.com).
+For more information, [visit MeshCentral.com](https://meshcentral.com).
 
 ## Social Media
 [YouTube](https://www.youtube.com/channel/UCJWz607A8EVlkilzcrb-GKg/videos)  
 [Reddit](https://www.reddit.com/r/MeshCentral/)  
-[Twitter](https://twitter.com/MeshCentral)  
+[X](https://x.com/MeshCentral)  
 [BlogSpot](https://meshcentral2.blogspot.com/)  
+[LinkedIn](https://www.linkedin.com/groups/13067101/)  
 
 ## Documentation
-The [User's Guide](https://meshcentral.com/docs/MeshCentral2UserGuide.pdf) contains information every adminstrator should know including usage, the server configuration file, databases, TLS offloading, Lets Encrypt, IP Filtering, Email setup, embedding, server port aliasing, reverse proxy setup, multi factor authentication, branding & terms of use, HashiCorp Vault support, and SSO.
-
-The [Installation Guide](https://meshcentral.com/docs/MeshCentral2InstallGuide.pdf) has detailed instructions for installing the MeshCentral Server on Windows 8.1, Windows 10, Windows 2012 R2, Amazon Linux 2, Raspberry Pi, Microsoft Azure, Google Cloud, Ubuntu 18, Ubuntu 16 and OpenBSD.
+[New Searchable Documentation](https://ylianst.github.io/MeshCentral/) is available here and contains information every administrator should know including usage, the server configuration file, databases, TLS offloading, Let's Encrypt, IP Filtering, Email setup, embedding, server port aliasing, reverse proxy setup, multi factor authentication, branding & terms of use, HashiCorp Vault support, and SSO.
 
 The [Design and Architecture Guide](https://meshcentral.com/docs/MeshCentral2DesignArchitecture.pdf) is a short document that includes information on the design overview, dependencies, source code descriptions of each file, certificates, TLS security, the agent to server handshake, browser to agent relay and WebRTC and the messenger service.
-
-[New Searchable Documentation](https://ylianst.github.io/MeshCentral/)
 
 ## Video Tutorials
 You can watch many tutorial videos on the [MeshCentral YouTube Channel](https://www.youtube.com/channel/UCJWz607A8EVlkilzcrb-GKg/videos). Two videos to get started involve installation and basic usages.
@@ -56,7 +53,7 @@ If you encounter a problem or have a suggestion to improve the product, you may 
 
 If you are filing a problem report, you should include:
 * The version of the software you are using
-* The Operating System and version
+* The operating system and version
 * The observed output
 * The expected output
 * Any troubleshooting you took to resolve the issue yourself
@@ -72,3 +69,7 @@ If you are having issues with the following other products, you should file a re
 
 ## License
 This software is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+## Archive PDFs
+[User's Guide](https://meshcentral.com/docs/MeshCentral2UserGuide.pdf)
+[Installation Guide](https://meshcentral.com/docs/MeshCentral2InstallGuide.pdf)

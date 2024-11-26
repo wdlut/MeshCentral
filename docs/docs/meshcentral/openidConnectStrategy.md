@@ -32,6 +32,23 @@ OpenID Connect allows clients of all types, including Web-based, mobile, and Jav
 
 That description was straight from [OpenID Connect Documentation](https://openid.net/connect/), but basically, OAuth2 is the foundation upon which OpenID Connect was built, allowing for wide ranging compatability and interconnection. OpenID Connect appends the secure user *authentication* OAuth2 is known for, with user *authorization* by allowing the request of additional *scopes* that provide additional *claims* or access to API's in an easily expandable way.
 
+### Annotations
+
+#### Own IDP, CA and Docker
+
+If you operate your own identity provider, your own certification authority and MeshCentral via Docker, it is necessary to provide the complete certificate chain, otherwise NodeJS (in particular the openid-client module) will refuse the connection to the IDP server. 
+
+The following errors can be found in the log file:
+> OIDC: Discovery failed.
+
+> UNABLE_TO_GET_ISSUER_CERT_LOCALLY
+
+To solve this problem, the certificate chain in PEM format must be placed in the data directory and the following entry must be added to the docker-compose.yml file in the “environment” section:
+```
+    environment:
+            - NODE_EXTRA_CA_CERTS=/opt/meshcentral/meshcentral-data/chain.pem
+```
+
 ## Basic Config
 
 ### *Introduction*
@@ -104,7 +121,7 @@ There are plenty of options at your disposal if you need them. In fact, you can 
                         "issuer": "https://sso.your.domain",
                         "authorization_endpoint": "https://auth.your.domain/auth-endpoint",
                         "token_endpoint": "https://tokens.sso.your.domain/token-endpoint",
-                        "endsession_endpoint": "https://sso.your.domain/logout",
+                        "end_session_endpoint": "https://sso.your.domain/logout",
                         "jwks_uri": "https://sso.your.domain/jwks-uri"
                     },
                     "client": {
@@ -161,14 +178,14 @@ In the advanced example config above, did you notice that the issuer property ha
    "issuer": "https://sso.your.domain",
    "authorization_endpoint": "https://auth.your.domain/auth-endpoint",
    "token_endpoint": "https://tokens.sso.your.domain/token-endpoint",
-   "endsession_endpoint": "https://sso.your.domain/logout",
+   "end_session_endpoint": "https://sso.your.domain/logout",
    "jwks_uri": "https://sso.your.domain/jwks-uri"
 },
 ```
 
 #### *Required and Commonly Used Configs*
 
-The `issuer` property in the `issuer` object is the only one required, and its only required if you aren't using a preset. Besides the issuer, these are mostly options related to the endpoints and their configuration. The schema below looks intimidating but it comes down to being able to support any IdP. Setting the issuer, and endsession_endpoint are the two main ones you want to setup.
+The `issuer` property in the `issuer` object is the only one required, and its only required if you aren't using a preset. Besides the issuer, these are mostly options related to the endpoints and their configuration. The schema below looks intimidating but it comes down to being able to support any IdP. Setting the issuer, and end_session_endpoint are the two main ones you want to setup.
 
 #### *Schema*
 

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -47,6 +47,8 @@
     <script keeplink=1 type="text/javascript" src="scripts/filesaver.min.js"></script>
     <script keeplink=1 type="text/javascript" src="scripts/ol{{{min}}}.js"></script>
     <script keeplink=1 type="text/javascript" src="scripts/ol3-contextmenu{{{min}}}.js"></script>
+    <script keeplink=1 type="text/javascript" src="scripts/purify{{{min}}}.js"></script>
+    <script keeplink=1 type="text/javascript" src="scripts/marked{{{min}}}.js"></script>
     <title>{{{title}}}</title>
 </head>
 <body id="body" oncontextmenu="handleContextMenu(event)" style="display:none;min-width:495px" onload="if (typeof(startup) !== 'undefined') startup();">
@@ -62,6 +64,7 @@
         <div id="cxwebrdp" class="cmtext" onclick="cmaction(11,event)">Web-RDP</div>
         <div id="cxwebvnc" class="cmtext" onclick="cmaction(12,event)">Web-VNC</div>
         <div id="cxwebssh" class="cmtext" onclick="cmaction(13,event)">Web-SSH</div>
+        <div id="cxrdp" class="cmtext" onclick="cmaction(14,event)">RDP</div>
         <div id="cxplugins" class="cmtext" onclick="cmaction(8,event)" style="display:none">Plugins</div>
         <hr id="cxmgroupsplit" />
         <div id="cxstar" class="cmtext" onclick="cmaction(10,event)" style="display:none">Toggle Star</div>
@@ -313,12 +316,12 @@
                     <tr>
                         <td class=h1></td>
                         <td id=devListToolbar class=style14 style="display:none">
-                            <img style="cursor:pointer;margin-top:4px;display:none" title="Collapse All" id="CollapseAllButton" src="images/icon-collapse.png" loading=lazy width=9 height=11 onclick="cmexpandaction(2)" />
-                            <img style="cursor:pointer;margin-top:4px;display:none" title="Expand All" id="ExpandAllButton" src="images/icon-expand.png" loading=lazy width=9 height=11 onclick="cmexpandaction(1)" />
+                            <img style="cursor:pointer;margin-top:4px;display:none" title="Collapse All" id="CollapseAllButton" src="images/icon-collapse.png" width=9 height=11 onclick="cmexpandaction(2)" />
+                            <img style="cursor:pointer;margin-top:4px;display:none" title="Expand All" id="ExpandAllButton" src="images/icon-expand.png" width=9 height=11 onclick="cmexpandaction(1)" />
                             <input type=button id=SelectAllButton onclick="selectallButtonFunction();" value="Select All" />&nbsp;
                             <input type=button id=GroupActionButton disabled="disabled" value="Group Action" onclick=groupActionFunction() />&nbsp;
                             <input type=button id=ScrollToTopButton onclick="onDevicesScroll(true);" style="display:none;margin-right:4px" value="Scroll To Top" />
-                            <input id=SearchInput type=search autocomplete=off placeholder=Filter onchange=onDeviceSearchChanged(event) onclick=onDeviceSearchChanged(event) onkeyup=onDeviceSearchChanged(event) onfocus=onSearchFocus(1) onblur=onSearchFocus(0) title="Filter: user:xxx or u:xxx ip:xxx group:xxx or g:xxx tag:xxx or t: xxx atag:xxx or a:xxx os:xxx amt:xxx desc:xxx wsc:ok wsc:noav wsc:noupdate wsc:nofirewall wsc:any"/>&nbsp;
+                            <input id=SearchInput type=input autocomplete=off placeholder=Filter onchange=onDeviceSearchChanged(event) onclick=onDeviceSearchChanged(event) onkeyup=onDeviceSearchChanged(event) onfocus=onSearchFocus(1) onblur=onSearchFocus(0) title="Filter: user:xxx or u:xxx ip:xxx group:xxx or g:xxx tag:xxx or t: xxx atag:xxx or a:xxx os:xxx amt:xxx desc:xxx wsc:ok wsc:noav wsc:noupdate wsc:nofirewall wsc:any"/>&nbsp;
                             <span id=SearchInputClearButton style="display:none;position:relative"><img src="images/x16.png" type="button" onclick="clearDeviceSearch()" style="position:absolute;cursor:pointer;left:-18px;top:-8px" srcset="images/x32.png 2x"/></span>
                             <select id=DevFilterSelect onchange=onOnlineCheckBox(event) title="Device Filter">
                                 <option value=0>All</option>
@@ -336,8 +339,8 @@
                             <span id="devsCustomUIBar"></span>
                         </td>
                         <td id=kvmListToolbar class=style14 style="display:none">
-                            <img style="cursor:pointer;margin-top:4px;display:none" title="Collapse All" id="CollapseAllButton2" src="images/icon-collapse.png" loading=lazy width=9 height=11 onclick="cmexpandaction(2)" />
-                            <img style="cursor:pointer;margin-top:4px;display:none" title="Expand All" id="ExpandAllButton2" src="images/icon-expand.png" loading=lazy width=9 height=11 onclick="cmexpandaction(1)" />
+                            <img style="cursor:pointer;margin-top:4px;display:none" title="Collapse All" id="CollapseAllButton2" src="images/icon-collapse.png" width=9 height=11 onclick="cmexpandaction(2)" />
+                            <img style="cursor:pointer;margin-top:4px;display:none" title="Expand All" id="ExpandAllButton2" src="images/icon-expand.png" width=9 height=11 onclick="cmexpandaction(1)" />
                             <input type="button" onclick="connectAllKvmFunction()" value="Connect All" />&nbsp;
                             <input type="button" onclick="disconnectAllKvmFunction()" value="Disconnect All" />&nbsp;
                             <input type="button" onclick="onDevicesScroll(true);" value="Scroll To Top" />&nbsp;
@@ -352,7 +355,7 @@
                             <input type=button id=refreshmap title="Reset map view" value=Reset onclick=refreshMap(false,true) />
                         </td>
                         <td class="auto-style1" style=height:100%>
-                            <img style="display:none;cursor:pointer;margin-top:3px" id=devListToolbarSettings src="images/icon-gear.png" loading=lazy width=16 height=16 onclick="onDeviceViewSettings()" />
+                            <img style="display:none;cursor:pointer;margin-top:3px" id=devListToolbarSettings src="images/icon-gear.png" width=16 height=16 onclick="onDeviceViewSettings()" />
                             <div style="display:none" id=devListToolbarView>
                                 View
                                 <select id=viewselect onchange=onDeviceViewChange()>
@@ -431,12 +434,12 @@
                             <div id="managePushAuthDev"><div class="p2AccountActions"><span id="authPushAuthDevCheck"><strong>&#x2713;</strong></span></div><span><a href=# onclick="return account_managePushAuthDev()">Manage push authentication</a><br /></span></div>
                             <div id="manageMessaging1"><div class="p2AccountActions"><span id="authMessagingCheck"><strong>&#x2713;</strong></span></div><span><a href=# onclick="return account_manageMessaging()">Manage messaging</a><br /></span></div>
                             <div id="manageOtp"><div class="p2AccountActions"><span id="authCodesSetupCheck"><strong>&#x2713;</strong></span></div><span><a href=# onclick="return account_manageOtp(0)">Manage backup codes</a><br /></span></div>
-                            <div class="p2AccountActions"></div><span><a href=# onclick="return account_viewPreviousLogins()">View previous logins</a><br /></span>
                         </div>
                     </div>
                     <div id="p2AccountActions">
                         <p><strong>Account actions</strong></p>
                         <p class="mL">
+                            <span id="viewPreviousLogins"><a href=# onclick="return account_viewPreviousLogins()">View previous logins</a><br /></span>
                             <span id="managePhoneNumber2" style="display:none"><a href=# onclick="return account_managePhone()">Manage phone number</a><br /></span>
                             <span id="manageMessaging2" style="display:none"><a href=# onclick="return account_manageMessaging()">Manage messaging</a><br /></span>
                             <span id="verifyEmailId" style="display:none"><a href=# onclick="return account_showVerifyEmail()">Verify email</a><br /></span>
@@ -507,7 +510,7 @@
                                 <input type=button onclick=showUserBroadcastDialog() style=margin-right:6px value="Broadcast" />
                                 <a href=# onclick=p4downloadUserInfo()><img style="cursor:pointer" title="Download user information" src="images/link4.png" /></a>
                                 <a href=# onclick=p4batchAccountCreate()><img id=p4UserBatchCreate style="cursor:pointer;display:none" title="Batch create many user accounts" src="images/link6.png" /></a>
-                                <img style="cursor:pointer;margin-top:3px;margin-left:6px" id=usersListToolbarSettings src="images/icon-gear.png" loading=lazy width=16 height=16 onclick="onUsersViewSettings()" />
+                                <img style="cursor:pointer;margin-top:3px;margin-left:6px" id=usersListToolbarSettings src="images/icon-gear.png" width=16 height=16 onclick="onUsersViewSettings()" />
                             </div>
                             <div>
                                 <input type=button id=UsersSelectAllButton onclick="p3usersSelectallButtonFunction()" value="Select All" />
@@ -630,7 +633,7 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td><textarea id=notesPanelArea readonly style=width:300px;height:200px;resize:none;overflow-y:scroll></textarea></td>
+                                            <td><div id=notesPanelArea style=width:300px;height:200px;resize:none;overflow-y:scroll></div></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -759,7 +762,7 @@
                             <span id=DeskRefreshButton title="Refresh the desktop"><img class="desktopButtons" id=DeskRefreshButtonImage src='images/icon-refresh.png' onclick=deskRefreshFunction() height=16 width=16 /></span>
                             <span id=DeskInputLockedButton title="Remote input is locked"><img class="desktopButtons" id=DeskInputLockedButtonImage src='images/icon-keylock-red.png' onclick=deskInputLockFunction(0) height=16 width=16 /></span>
                             <span id=DeskInputUnLockedButton title="Remote input is unlocked"><img class="desktopButtons" id=DeskInputUnLockedButtonImage src='images/icon-keylock.png' onclick=deskInputLockFunction(1) height=16 width=16 /></span>
-                            <span id=DeskGuestShareButton title="Share the device with a guest"><img class="desktopButtons" id=DeskInputUnLockedButtonImage src='images/icon-share2.png' onclick=showShareDevice() height=16 width=16 /></span>
+                            <span id=DeskGuestShareButton title="Share the device with a guest"><img class="desktopButtons" id=DeskGuestShareButtonImage src='images/icon-share2.png' onclick=showShareDevice() height=16 width=16 /></span>
                         </div>
                         <div class="toright2"><span id=DeskMonitorSelectionSpan></span></div>
                         <div>
@@ -1366,6 +1369,7 @@
                     <input id="d4WrapButton" type="button" value="Wrap On" onclick="d4ToggleWrap()" />
                     <input id="d4SizeButton" type="button" value="Small" onclick="d4ToggleSize()" />
                     <input id="d4EncodingButton" type="button" value="Raw" onclick="d4ToggleEncoding()" />
+                    <input id="d4LineBreakButton" type="button" value="Windows" onclick="d4ToggleLineBreak()" />
                     <textarea id=d4editorarea autocomplete="off" style="height:calc(100vh - 286px);width:100%;overflow:scroll;resize:none;white-space:pre"></textarea>
                 </div>
                 <div id=dialog7 style="">
@@ -1406,6 +1410,8 @@
                             <div>Encoding</div>
                             <select id="d7encoding" dir="rtl">
                                 <option value=1>JPEG</option>
+                                <option value=2>PNG</option>
+                                <option value=3>TIFF</option>
                                 <option selected=selected value=4>WEBP</option>
                             </select>
                         </div>
@@ -1449,13 +1455,13 @@
                                 <option value="canvas">Canvas Size</option>
                                 <option value="browser">Browser Size</option>
                                 <option value="screen">Screen Size</option>
-                                <option value="640x480">640×480</option>
-                                <option value="1024x768">1024×768</option>
-                                <option value="1280x800">1280×800</option>
-                                <option value="1440x900">1440×900</option>
-                                <option value="1600x900">1600×900</option>
-                                <option value="1680x1050">1680×1050</option>
-                                <option value="1920x1080">1920×1080</option>
+                                <option value="640x480">640x480</option>
+                                <option value="1024x768">1024x768</option>
+                                <option value="1280x800">1280x800</option>
+                                <option value="1440x900">1440x900</option>
+                                <option value="1600x900">1600x900</option>
+                                <option value="1680x1050">1680x1050</option>
+                                <option value="1920x1080">1920x1080</option>
                             </select>
                         </div>
                         <div>
@@ -1556,6 +1562,8 @@
         var debugmode = 0;
         var windowsBrowser = detectWindowsBrowser();
         var attemptWebRTC = ((features & 128) != 0);
+        var webrtcconfiguration = '{{{webrtcconfig}}}';
+        if (webrtcconfiguration == '') { webrtcconfiguration = null; } else { try { webrtcconfiguration = JSON.parse(decodeURIComponent(webrtcconfiguration)); } catch (ex) { console.log('Invalid WebRTC config: "' + webrtcconfiguration + '".'); webrtcconfiguration = null; } }
         var passRequirements = '{{{passRequirements}}}';
         if (passRequirements != '') { passRequirements = JSON.parse(decodeURIComponent(passRequirements)); }
         var customui = '{{{customui}}}';
@@ -1700,6 +1708,19 @@
                 mainUpdate(512);
             }, 200);
 
+             // open notes markdown links in new tab
+            if (DOMPurify) {
+                DOMPurify.addHook('afterSanitizeAttributes', function (node) {
+                    if ('target' in node) {
+                        node.setAttribute('target', '_blank');
+                        node.setAttribute('rel', 'noopener noreferrer');
+                    }
+                    if (!node.hasAttribute('target') && (node.hasAttribute('xlink:href') || node.hasAttribute('href'))) {
+                        node.setAttribute('xlink:show', 'new');
+                    }
+                });
+            }
+
             // Connect to the mesh server
             meshserver = MeshServerCreateControl(domainUrl);
             meshserver.onStateChanged = onStateChanged;
@@ -1772,12 +1793,14 @@
             QV('p4UserBatchCreate', (features & 0x00080000) == 0);
 
             // Set the file editor
-            d4EditWrapVal = getstore('editorWrap', 0);
-            d4EditSizeVal = getstore('editorSize', 0);
-            d4EditEncodingVal = getstore('editorEncoding', 0);
+            d4EditWrapVal = Number(getstore('editorWrap', 0));
+            d4EditSizeVal = Number(getstore('editorSize', 0));
+            d4EditEncodingVal = Number(getstore('editorEncoding', 0));
+            d4EditLineBreakVal = Number(getstore('editorLineBreak', 0));
             d4ToggleWrap(true);
             d4ToggleSize(true);
             d4ToggleEncoding(true);
+            d4ToggleLineBreak(true);
             if (pluginHandler != null) pluginHandler.callHook('onWebUIStartupEnd');
 
             // Deleted non-english style and fix all topbar titles
@@ -2888,6 +2911,7 @@
                         } else {
                             setDialogMode(4, "Server Configuration", 2);
                             QV('d4EncodingButton', false);
+                            QV('d4LineBreakButton', false);
                             QS('dialog').width = 'auto';
                             QS('dialog').bottom = '80px';
                             QS('dialog').top = QS('dialog').left = QS('dialog').right = '100px';
@@ -2968,7 +2992,7 @@
                             focusTextBox('d2devNotes');
                         }
                     }else{
-                        if (message.notes) { QH('notesPanelArea', decodeURIComponent(message.notes)); } else { QH('notesPanelArea', ''); }
+                        Q('notesPanelArea').innerHTML = (message.notes && marked && DOMPurify) ? DOMPurify.sanitize(marked.parse(decodeURIComponent(message.notes), { breaks: true }), { USE_PROFILES: { html: true } }) : '';
                         if (showNotesPanel && message.notes) { QV('notesPanel',true); }else{ QV('notesPanel', false); }
                     }
                     break;
@@ -3121,15 +3145,20 @@
                     // View the file in the dialog box
                     var p5editSaveBack = function(b, tag) {
                         var data;
+                        var value = Q('d4editorarea').value;
+                        value = d4EditLineBreakVal === 0 ? value.replace(/\r?\n|\r/g, '\r\n') : // Windows
+                                d4EditLineBreakVal === 2 ? value.replace(/\r\n|\n/g, '\r') : // Mac
+                                value.replace(/\r\n|\r/g, '\n'); // Linux
                         if (d4EditEncodingVal == 1) {
-                            data = encode_utf8(Q('d4editorarea').value); // UTF8 encoding
+                            data = encode_utf8(value); // UTF8 encoding
                         } else {
-                            data = Q('d4editorarea').value; // RAW encoding
+                            data = value; // RAW encoding
                         }
                         meshserver.send({ action: 'fileoperation', fileop: 'set', path: tag.path, file: tag.file, data: btoa(data) });
                     }
                     setDialogMode(4, EscapeHtml(message.file), 3, p5editSaveBack, null, message);
                     QV('d4EncodingButton', true);
+                    QV('d4LineBreakButton', true);
                     QS('dialog').width = 'auto';
                     QS('dialog').bottom = '80px';
                     QS('dialog').top = QS('dialog').left = QS('dialog').right = '100px';
@@ -4967,7 +4996,7 @@
 
         function closeDeviceHelpRequest(appid, nodeid) {
             setDialogMode(0);
-            meshserver.send({ action: 'msg', type: 'localapp', nodeid: decodeURIComponent(nodeid), appid: decodeURIComponent(appid), value: { cmd: "cancelhelp" } });
+            meshserver.send({ action: 'msg', type: 'localapp', nodeid: decodeURIComponent(nodeid), appid: decodeURIComponent(appid), value: { cmd: 'cancelhelp' } });
         }
 
         // Show currently active sessions on this device
@@ -5135,14 +5164,21 @@
         function onMultiDesktopStateChange(desk, state) { try { QH('skvmid_' + desk.shortid, ["Disconnected", "Connecting...", "Setup...", '', ''][state]); } catch (ex) {} }
         function onDeviceSearchChanged(e) { 
             var url = new URL(window.location.href);
-            if ((e != null) && (e.target.value != '')) { 
+            if ((e != null) && ((e.target.id == 'SearchInput') || (e.target.id == 'KvmSearchInput'))){ // search box changed or cleared
                 if (e.target.id == 'SearchInput') { 
                     Q('KvmSearchInput').value = Q('SearchInput').value;
                 } else {
                     Q('SearchInput').value = Q('KvmSearchInput').value;
                 }
-                url.searchParams.set('filter', e.target.value);
-                if (urlargs.filter) { urlargs.filter = e.target.value; }
+                if (e.target.value != '') {
+                    url.searchParams.set('filter', e.target.value);
+                    if (urlargs.filter) { urlargs.filter = e.target.value; }
+                } else {
+                    url.searchParams.delete('filter');
+                    if (urlargs.filter) { delete urlargs.filter; }
+                }
+            } else if ((e != null) && (e.target.id == 'DevFilterSelect')){ // devfilter box changed
+                // DO NOTHING
             } else {
                 url.searchParams.delete('filter');
                 if (urlargs.filter) { delete urlargs.filter; }
@@ -5202,6 +5238,7 @@
                     desk.m.mouseCursorActive(xxcurrentView == 11);
                     desk.shortid = shortid;
                     desk.attemptWebRTC = attemptWebRTC;
+                    desk.webrtcconfig = webrtcconfiguration;
                     desk.onStateChanged = onMultiDesktopStateChange;
                     //desk.onConsoleMessageChange = function () { console.log('CONSOLEMSG:', desk.consoleMessage); }
                     desk.m.ImageType = multidesktopsettings.agentencoding; // Send 4 if WebP is supported, otherwise send 1 for JPEG.
@@ -5559,7 +5596,9 @@
 
             // macOS agent install
             x += '<div id=agins_osx style=display:none>' + format("To add a new computer to device group \"{0}\", download the mesh agent and install it the computer to manage. This agent installer has server and device group information embedded within it.", EscapeHtml(mesh.name)) + '<br /><br />';
-            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + (urlargs.key?('&key=' + urlargs.key):'') + '") title="' + "Universal version of macOS Mesh Agent" + '">macOS Agent (Universal)</a> <img src=images/link4.png height=10 width=10 title="' + "Copy macOS agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + '",0)>');
+            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshosxagent?id=16&meshid=' + meshid.split('/')[2] + (urlargs.key?('&key=' + urlargs.key):'') + '") title="' + "x86-64bit version of macOS Mesh Agent" + '">' + "macOS x86-64bit" + '</a> <img src=images/link4.png height=10 width=10 title="' + "Copy macOS agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshosxagent?id=16&meshid=' + meshid.split('/')[2] + '",0)>');
+            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshosxagent?id=29&meshid=' + meshid.split('/')[2] + (urlargs.key?('&key=' + urlargs.key):'') + '") title="' + "ARM 64bit version of macOS Mesh Agent" + '">' + "macOS ARM (64bit)" + '</a> <img src=images/link4.png height=10 width=10 title="' + "Copy macOS agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshosxagent?id=29&meshid=' + meshid.split('/')[2] + '",0)>');
+            x += addHtmlValue("Mesh Agent", '<a onclick=downloadFile("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + (urlargs.key?('&key=' + urlargs.key):'') + '") title="' + "Universal version of macOS Mesh Agent" + '">' + "macOS (Universal)" + '</a> <img src=images/link4.png height=10 width=10 title="' + "Copy macOS agent URL to clipboard" + '" style=cursor:pointer onclick=copyAgentUrl("meshosxagent?id=10005&meshid=' + meshid.split('/')[2] + '",0)>');
             x += '</div>';
 
             // QR code agent install
@@ -5790,6 +5829,9 @@
         function groupActionFunction() {
             var addedOptions = [], nodeids = getCheckedDevices(), added = 0;
 
+            // Remind the user to add two factor authentication
+            if ((features & 0x00040000) && (count2factoraAuths() == 0)) { setDialogMode(2, "Account Security", 1, null, "Unable to access this feature until two-factor authentication is enabled. This is required for extra security. Go to the \"My Account\" tab and look at the \"Account Security\" section."); return; }
+
             // Check if any of the selected devices have a MQTT connection active
             if (features & 0x00400000) {
                 for (var i in nodeids) { if ((getNodeFromId(nodeids[i]).conn & 16) != 0) { addedOptions.push({ v:103, name: "Send MQTT Message" });; break; } }
@@ -5920,7 +5962,7 @@
             } else if (op == 110) {
                 // Force agent update
                 var x = "Force agent update on selected devices?" + '<br /><br />';
-                setDialogMode(2, "For agent update", 3, d2groupActionFunctionAgentUpdateExec, x);
+                setDialogMode(2, "Force agent update", 3, d2groupActionFunctionAgentUpdateExec, x);
             } else if (op == 111) {
                 // Clear agent core
                 var x = "Clear agent core on selected devices?" + '<br /><br />';
@@ -6199,7 +6241,7 @@
         function lastConnectSort(a, b) { var aa = a.lastconnect, bb = b.lastconnect; if (aa == null) { aa = 99999999999999; } if (bb == null) { bb = 99999999999999; } if (a.conn > 0) { aa = 99999999999998; } if (b.conn > 0) { bb = 99999999999998; } if (aa == bb) { return nameSort(a, b); } return (aa - bb); }
 
         function onSearchFocus(x) { searchFocus = x; }
-        function clearDeviceSearch() { Q('KvmSearchInput').value = Q('SearchInput').value = ''; Q('DevFilterSelect').value = 0; onOnlineCheckBox(); mainUpdate(1); }
+        function clearDeviceSearch() { Q('KvmSearchInput').value = Q('SearchInput').value = ''; onOnlineCheckBox(); mainUpdate(1); }
         function onMapSearchFocus(x) { mapSearchFocus = x; }
         function onUserSearchFocus(x) { userSearchFocus = x; }
         function onConsoleFocus(x) { consoleFocus = x; }
@@ -6323,15 +6365,15 @@
         function onSearchInputChanged() {
             var x = Q('SearchInput').value.toLowerCase().trim(); putstore('_search', Q('SearchInput').value);
             QS('SearchInput')['background-color'] = QS('KvmSearchInput')['background-color'] = (x == '')?null:'#FDFFBE';
-            QV('SearchInputClearButton', (x != '') && (navigator.userAgent.indexOf('Firefox') >= 0));
-            QV('KvmSearchInputClearButton', (x != '') && (navigator.userAgent.indexOf('Firefox') >= 0));
+            QV('SearchInputClearButton', (x != ''));
+            QV('KvmSearchInputClearButton', (x != ''));
 
             var r = parseSearchOrInput(x);
             for (var d in nodes) { nodes[d].v = (r.indexOf(d) >= 0) }
 
             // Check filter dropdown
             var devFilter = Q('DevFilterSelect').value;
-            if (devFilter == 1) { for (var d in nodes) { if ((nodes[d].conn == null) || (nodes[d].conn == 0)) { nodes[d].v = false; } } } // Online
+            if (devFilter == 1) { for (var d in nodes) { if (((nodes[d].conn == null) || (nodes[d].conn == 0)) && (nodes[d].mtype != 3)) { nodes[d].v = false; } } } // Online, also include Local devices and relayed devices
             if (devFilter == 2) { for (var d in nodes) { var n = nodes[d]; if ((n.sessions == null) || ((n.sessions.kvm == null) && (n.sessions.terminal == null) && (n.sessions.files == null) && (n.sessions.tcp == null) && (n.sessions.udp == null))) { n.v = false; } } } // Sessions
             if (devFilter == 3) { for (var d in nodes) { if (stars[nodes[d]._id] != 1) { nodes[d].v = false; } } } // Starred
             if (devFilter == 4) { for (var d in nodes) { if (nodes[d].intelamt == null) { nodes[d].v = false; } } } // Intel AMT
@@ -6420,7 +6462,16 @@
                     QV('cxwebrdp', ((((node.conn & 1) != 0) || (node.mtype == 3)) && (node.agent) && ((rights & 8) != 0) && ((features & 0x40000000) == 0)));
                     QV('cxwebssh', ((features2 & 0x200) && (((node.conn & 1) != 0) || (node.mtype == 3)) && (node.agent) && ((rights & 8) != 0)));
                     QV('cxconsole', (consoleRights && (node.mtype == 2) && ((node.agent == null) || (node.agent.caps == null) || ((node.agent.caps & 8) != 0))) && (rights & 8));
-
+                    QV('cxrdp', false); // always have the RDP hidden
+                    if ((((node.conn & 1) != 0) || (node.mtype == 3)) && (node.agent) && ((rights & 8) != 0)) {
+                        if ((node.agent.id > 0) && (node.agent.id < 5)) {
+                            if (navigator.platform.toLowerCase() == 'win32') {
+                                if ((serverinfo.devicemeshrouterlinks == null) || (serverinfo.devicemeshrouterlinks.rdp != false)) {
+                                    QV('cxrdp', true);
+                                }
+                            }
+                        }
+                    }
                     QV('cxmgroupsplit', true);
                     QV('cxstar', true);
                     break;
@@ -6488,6 +6539,7 @@
             else if (action == 11) { p10mstsc(nodeid); } // Web-RDP
             else if (action == 12) { p10rfb(nodeid); } // Web-VNC
             else if (action == 13) { p10ssh(nodeid); } // Web-SSH
+            else if (action == 14) { p10MCRouter(nodeid,3); } // RDP
         }
 
         function cmmeshaction(action) {
@@ -7553,7 +7605,7 @@
                 }
 
                 // Active Users
-                if (node.users && node.conn && (node.users.length > 0) && (node.conn & 1)) { x += addDeviceAttribute(((node.users.length > 1)?"Active Users":"Active User"), EscapeHtml(node.users.join(', '))); }
+                if (node.users && (node.users.length > 0)) { x += addDeviceAttribute(((node.users.length > 1)?"Active Users":"Active User"), EscapeHtml(node.users.join(', '))); }
 
                 // Display device user consent
                 if ((node.agent != null) && (node.agent.id != 14) && (node.mtype != 3)) {
@@ -8139,13 +8191,14 @@
             if (xxdialogMode) return;
             if (noteid == null) { noteid = encodeURIComponentEx('p'+userinfo._id); }
             var x = '<textarea id=d2devNotes ro=' + readonly + ' noteid=' + noteid + ' readonly style=background-color:#fcf3cf;width:100%;height:200px;resize:none;overflow-y:scroll></textarea>';
-            if (noteid.startsWith('node%2F%2F')) { x += '<span style=font-size:10px>' + "Device group notes can be viewed and changed by other device group administrators." + '<span>'; }
+            if (noteid.startsWith('node%2F%2F')) { x += ' <span style=font-size:10px>' + "Device group notes can be viewed and changed by other device group administrators." + '</span>'; }
+            if (showNotesPanel) { x += ' <span style=font-size:10px><a target=_blank href=\'https://www.markdownguide.org/cheat-sheet/\'>' + "Markdown syntax supported" + '</a></span>'; }
             setDialogMode(2, "Notes", 3, showNotesEx, x, noteid);
             meshserver.send({ action: 'getNotes', id: decodeURIComponent(noteid) });
         }
 
         function showNotesEx(buttons, tag) {
-            QH('notesPanelArea', Q('d2devNotes').value);
+            Q('notesPanelArea').innerHTML = (marked && DOMPurify) ? DOMPurify.sanitize(marked.parse(Q('d2devNotes').value, { breaks: true }), { USE_PROFILES: { html: true } }) : Q('d2devNotes').value;
             meshserver.send({ action: 'setNotes', id: decodeURIComponent(tag), notes: encodeURIComponentEx(Q('d2devNotes').value) });
             if (showNotesPanel && Q('d2devNotes').value != '') { QV('notesPanel',true); }else{ QV('notesPanel', false); }
         }
@@ -8213,7 +8266,7 @@
 
         function deviceMessageFunction() {
             if (xxdialogMode) return;
-            var x = '<div style=margin-bottom:4px>' + "Display a message box on the remote device" + '</div>';
+            var x = '<div style=margin-bottom:4px>' + "Display a message box on the remote device." + '</div>';
             x += '<textarea id=d2devMessage style=background-color:#fcf3cf;width:100%;height:80px;resize:none;overflow-y:scroll;box-sizing:border-box;margin-bottom:4px></textarea>';
             x += '<select style=width:100% id=d2devTimeout>';
             x += '<option value=2 selected>' + "Show for 2 Minutes (Default)" + '</option>';
@@ -8441,6 +8494,8 @@
                     if ((xxcurrentView == 11) || (xxcurrentView == 12)) { // Only show these options on terminal or desktop tabs
                         y += '<option value=312>' + "Intel&reg; AMT Reset to BIOS" + '</option>';
                         y += '<option value=311>' + "Intel&reg; AMT Power on to BIOS" + '</option>';
+                        y += '<option value=315>' + "Intel&reg; AMT Power on to PXE" + '</option>';
+                        y += '<option value=316>' + "Intel&reg; AMT Reset to PXE" + '</option>';
                     }
                 }
                 if ((currentNode.intelamt != null) && (currentNode.intelamt.state == 2) && ((currentNode.conn & 6) != 0) && ((rights & 64) != 0)) {
@@ -8495,7 +8550,7 @@
                 // Intel AMT One Click Recovery (OCR)
                 Q('d3localmodeform').action = 'oneclickrecovery.ashx';
                 Q('d3auth').value = authCookie;
-                Q('d3filter').value = '.iso';
+                Q('d3filter').value = '.efi';
                 Q('d3attrib').value = currentNode._id;
                 setDialogMode(3, "Intel&reg; AMT One Click Recovery", 3, deviceActionOneClickRecovery);
                 d3init();
@@ -8509,6 +8564,10 @@
                 setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function() { meshserver.send({ action: 'poweraction', nodeids: [ currentNode._id ], actiontype: parseInt(op) + ((xxcurrentView == 12) ? 2 : 0) }); }, "Perform Intel&reg; AMT power on to BIOS?");
             } else if (op == 312) { // Intel AMT reset to BIOS
                 setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function() { meshserver.send({ action: 'poweraction', nodeids: [ currentNode._id ], actiontype: parseInt(op) + ((xxcurrentView == 12) ? 2 : 0) }); }, "Perform Intel&reg; AMT reset to BIOS?");
+            } else if (op == 315) { // Intel AMT power to PXE
+                setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function() { meshserver.send({ action: 'poweraction', nodeids: [ currentNode._id ], actiontype: parseInt(op) + ((xxcurrentView == 12) ? 2 : 0) }); }, "Perform Intel&reg; AMT power on to PXE?");
+            } else if (op == 316) { // Intel AMT reset to PXE
+                setDialogMode(2, "Intel&reg; AMT Power Operation", 3, function() { meshserver.send({ action: 'poweraction', nodeids: [ currentNode._id ], actiontype: parseInt(op) + ((xxcurrentView == 12) ? 2 : 0) }); }, "Perform Intel&reg; AMT reset to PXE?");
             } else if ((op == 400) || (op == 401)) {
                 // Flash / vibrate
                 meshserver.send({ action: 'poweraction', nodeids: [ currentNode._id ], actiontype: parseInt(op), time: parseInt(Q('d2devicetime').value) });
@@ -8880,7 +8939,7 @@
         // Show MeshCmd dialog
         function p10showMeshCmdDialog(mode, nodeid) {
             if (xxdialogMode) return;
-            var y = '<select id=aginsSelect onclick=meshCmdOsClick() style=width:236px>';
+            var y = '<select id=aginsSelect onchange=meshCmdOsClick() style=width:236px>';
             y += '<option value=4>' + "Windows x86 (64bit)" + '</option>';
             y += '<option value=3>' + "Windows x86 (32bit)" + '</option>';
             y += '<option value=43>' + "Windows ARM (64bit)" + '</option>';
@@ -9003,7 +9062,11 @@
         var desktopNode;
         function setupDesktop() {
             // Setup the remote desktop
-            if ((desktopNode != currentNode) && (desktop != null)) { desktop.Stop(); desktopNode = null; desktop = null; }
+            if ((desktopNode != currentNode) && (desktop != null)) {
+                if (desktopNode._id != currentNode._id) {
+                    desktop.Stop(); desktopNode = null; desktop = null;
+                }
+            }
 
             // If the device desktop is already connected in multi-desktop, use that.
             if ((desktopNode != currentNode) || (desktop == null)) {
@@ -9024,8 +9087,8 @@
                     desktop.onMetadataChange = function(metadata) { updateMetadata(desktop, 'deskmetadata'); }
                     if ((features2 & 0x2000) != 0) desktop.m.stopInput = true;
                     if (desktop && desktop.m.mouseCursorActive) { desktop.m.mouseCursorActive(true); }
-                    QV('DeskInputLockedButton', desktop.m.RemoteInputLock === 1);
-                    QV('DeskInputUnLockedButton', desktop.m.RemoteInputLock === 0);
+                    QV('DeskInputLockedButton', desktop.m.RemoteInputLock == true);
+                    QV('DeskInputUnLockedButton', desktop.m.RemoteInputLock == false);
                     desktop.m.onRemoteInputLockChanged = function(obj, state) { QV('DeskInputLockedButton', state); QV('DeskInputUnLockedButton', !state); }
                     desktop.m.onKeyboardStateChanged = function(obj, state) {
                         QS('p11numlock').display = ((state & 1) ? 'inline-block' : 'none');
@@ -9037,7 +9100,7 @@
                     delete multiDesktop[currentNode._id];
                 } else {
                     // Device is not already connected, just setup a blank canvas
-                    QH('DeskParent', '<canvas id=Desk oncontextmenu="return false" onmousedown=dmousedown(event) onmouseup=dmouseup(event) onmousemove=dmousemove(event)></canvas>');
+                    if(desktop == null) { QH('DeskParent', '<canvas id=Desk oncontextmenu="return false" onmousedown=dmousedown(event) onmouseup=dmouseup(event) onmousemove=dmousemove(event)></canvas>'); }
                     desktopNode = currentNode;
                 }
                 // Setup the mouse wheel
@@ -9196,7 +9259,7 @@
                             } else if ((data.action == 'present') && (webRtcDesktop == null)) {
                                 // Setup WebRTC channel
                                 webRtcDesktop = { platform: data.platform };
-                                var configuration = null; //{ "iceServers": [ { 'urls': 'stun:stun.services.mozilla.com' }, { 'urls': 'stun:stun.l.google.com:19302' } ] };
+                                var configuration = null; //{ "iceServers": [ { 'urls': 'stun:stun.cloudflare.com:3478' }, { 'urls': 'stun:stun.l.google.com:19302' } ] };
                                 if (typeof RTCPeerConnection !== 'undefined') { webRtcDesktop.webrtc = new RTCPeerConnection(configuration); }
                                 else if (typeof webkitRTCPeerConnection !== 'undefined') { webRtcDesktop.webrtc = new webkitRTCPeerConnection(configuration); }
 
@@ -9269,6 +9332,7 @@
                     desktop.debugmode = debugmode;
                     desktop.m.debugmode = debugmode;
                     desktop.attemptWebRTC = attemptWebRTC;
+                    desktop.webrtcconfig = webrtcconfiguration;
                     desktop.options = {};
                     if (tsid != null) { desktop.options.tsid = tsid; }
                     if (consent != null) { desktop.options.consent = consent; }
@@ -9669,6 +9733,7 @@
 
         // Enter browser fullscreen
         function enterBrowserFullscreen(elem) {
+            if (navigator.keyboard && navigator.keyboard.lock) { navigator.keyboard.lock(); }
             if (elem.requestFullscreen) { elem.requestFullscreen(); }
             else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
             else if (elem.mozRequestFullScreen) { elem.mozRequestFullScreen(); }
@@ -9681,6 +9746,7 @@
             else if (document.msExitFullscreen) { document.msExitFullscreen(); }
             else if (document.mozCancelFullScreen) { document.mozCancelFullScreen(); }
             else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+            if (navigator.keyboard && navigator.keyboard.unlock) { navigator.keyboard.unlock(); }
         }
 
         // Return true if the browser is fullscreen. This is a delayed method that will return true/false late. Not very useful.
@@ -10245,10 +10311,20 @@
             }
         });
         Q('DeskTools').addEventListener('mousedown', function (event) {
-            if (Q('DeskTools').style.cursor === 'col-resize') deskTools.resizing = true;
+            if (Q('DeskTools').style.cursor === 'col-resize') {
+                deskTools.resizing = true;
+                Q('Desk').removeAttribute('onmouseup');
+                Q('Desk').removeAttribute('onmousedown');
+                Q('Desk').removeAttribute('onmousemove');
+            }
         });
         document.addEventListener('mouseup', function () {
-            if(deskTools.resizing===true && Q('DeskTools').style.cursor === 'col-resize') deskTools.resizing = false;
+            if(deskTools.resizing === true && Q('DeskTools').style.cursor === 'col-resize') {
+                deskTools.resizing = false;
+                Q('Desk').setAttribute('onmouseup','dmouseup(event)');
+                Q('Desk').setAttribute('onmousedown','dmousedown(event)');
+                Q('Desk').setAttribute('onmousemove','dmousemove(event)');
+            }
         });
         document.addEventListener('mousemove', function (event) {
             if (deskTools.resizing) {
@@ -10462,7 +10538,11 @@
         var terminalNode;
         function setupTerminal() {
             // Setup the terminal
-            if ((terminalNode != currentNode) && (terminal != null)) { terminal.Stop(); terminal = null; }
+            if ((terminalNode != currentNode) && (terminal != null)) {
+                if (terminalNode._id != currentNode._id) {
+                    terminal.Stop(); terminalNode = null; terminal = null;
+                }
+            }
             terminalNode = currentNode;
             updateTerminalButtons();
         }
@@ -10915,6 +10995,11 @@
         var filesNode;
         function setupFiles() {
             // Setup the files tab
+            if ((filesNode != currentNode) && (files != null)) {
+                if (filesNode._id != currentNode._id) {
+                    files.Stop(); filesNode = null; files = null;
+                }
+            }
             var samenode = (filesNode == currentNode);
             filesNode = currentNode;
             var online = ((filesNode.conn & 1) != 0) || (filesNode.mtype == 3); // If Agent (1) connected, enable Terminal
@@ -10923,7 +11008,6 @@
             QV('p13Connect', (files == null) && (filesNode.mtype == 2));
             QV('p13Connects', ((features2 & 0x200) != 0) && (filesNode.agent != null) && (filesNode.agent.id != 3) && (filesNode.agent.id != 4) && ((features2 & 0x800000) == 0));
             QV('p13Disconnect', files != null);
-            if (((samenode == false) || (online == false)) && files) { files.Stop(); files = null; }
             p13setActions();
         }
 
@@ -10992,6 +11076,7 @@
                 files.contype = contype;
                 files.options = { consent: consent }
                 files.attemptWebRTC = attemptWebRTC;
+                files.webrtcconfig = webrtcconfiguration;
                 files.onStateChanged = onFilesStateChange;
                 files.onConsoleMessageChange = function () {
                     if (files.consoleMessage) {
@@ -11224,7 +11309,6 @@
         function p13openfilefolderEx() {
             var openfilefolder = "", checkboxes = document.getElementsByName('fd');
             for (var i = 0; i < checkboxes.length; i++) {
-                console.log(checkboxes[i]);
                 if (checkboxes[i].checked) {
                     openfilefolder = (isWindowsNode(currentNode) ? '' : '/') + p13filetreelocation.join(isWindowsNode(currentNode) ? '\\' : '/') + (isWindowsNode(currentNode) ? '\\' : '/') + p13filetree.dir[checkboxes[i].value].n;
                 }
@@ -11347,9 +11431,9 @@
                 QE('p13ZipButton', advancedFeatures && (cc > 0) && ((p13filetreelocation.length > 0) || (winAgent == false)));
                 QE('p13UnzipButton', advancedFeatures && (cc == 1) && (sfc == 1) && ((p13filetreelocation.length > 0) || (winAgent == false)) && p13getFileSelAllowedExt('.zip'));
                 QE('p13PasteButton', advancedFeatures && ((p13filetreelocation.length > 0) || (winAgent == false)) && ((p13clipboard != null) && (p13clipboard.length > 0)));
-                QE('p13GoToFolderButton', true);
-                QE('p13OpenButton', (cc == 1));
-                QE('p13DownloadButton', advancedFeatures && (cc > 0) && (cc == sfc) && ((p13filetreelocation.length > 0) || (winAgent == false)));
+                QE('p13GoToFolderButton', advancedFeatures);
+                QE('p13OpenButton', advancedFeatures && (cc == 1));
+                QE('p13DownloadButton', (cc > 0) && (cc == sfc) && ((p13filetreelocation.length > 0) || (winAgent == false)));
             }
             var filesState = ((files != null) && (files.state != 0));
             if (((filesState == true) && (files.contype != 2)) || (filesNode.agent == null) || (filesNode.agent.id == 3) || (filesNode.agent.id == 4)) {
@@ -11506,7 +11590,7 @@
             gdownloadFile = { path: decodeURIComponent(x), file: decodeURIComponent(y), size: z, tsize: 0, data: '', state: 0, id: Math.random(), tag: tag }
             //console.log('p13downloadFileCancel', gdownloadFile);
             files.sendText({ action: 'download', sub: 'start', id: gdownloadFile.id, path: gdownloadFile.path });
-            setDialogMode(2, "Download File", 10, p13downloadFileCancel, '<div>' + gdownloadFile.file + '</div><br /><progress id=d2progressBar style=width:100% value=0 max=' + z + ' />');
+            setDialogMode(2, "Download File", 10, p13downloadFileCancel, '<div>' + EscapeHtml(gdownloadFile.file) + '</div><br /><progress id=d2progressBar style=width:100% value=0 max=' + z + ' />');
         }
 
         // Called by the html page to cancel the download
@@ -11533,6 +11617,7 @@
                     // View the file in the dialog box
                     setDialogMode(4, EscapeHtml(gdownloadFile.file), 3, p13editSaveBack, null, gdownloadFile.file);
                     QV('d4EncodingButton', true);
+                    QV('d4LineBreakButton', true);
                     QS('dialog').width = 'auto';
                     QS('dialog').bottom = '80px';
                     QS('dialog').top = QS('dialog').left = QS('dialog').right = '100px';
@@ -11568,6 +11653,7 @@
         var d4EditWrapVal = 0;
         var d4EditSizeVal = 0;
         var d4EditEncodingVal = 0;
+        var d4EditLineBreakVal = 0;
         function d4ToggleWrap(update) {
             if (!update) { d4EditWrapVal = ++d4EditWrapVal % 2; }
             Q('d4WrapButton').value = ["Wrap: ON","Wrap: OFF"][d4EditWrapVal];
@@ -11596,12 +11682,24 @@
             putstore('editorEncoding', d4EditEncodingVal);
         }
 
+        function d4ToggleLineBreak(update) {
+            if (!update) {
+                d4EditLineBreakVal = ++d4EditLineBreakVal % 3;
+            }
+            Q('d4LineBreakButton').value = ["Line Break: Windows (CR LF)","Line Break: Linux (LF)","Line Break: Mac (CR)"][d4EditLineBreakVal];
+            putstore('editorLineBreak', d4EditLineBreakVal);
+        }
+
         function p13editSaveBack(b, tag) {
             var data;
+            var value = Q('d4editorarea').value;
+            value = d4EditLineBreakVal === 0 ? value.replace(/\r?\n|\r/g, '\r\n') : // Windows
+                    d4EditLineBreakVal === 2 ? value.replace(/\r\n|\n/g, '\r') : // Mac
+                    value.replace(/\r\n|\r/g, '\n'); // Linux
             if (d4EditEncodingVal == 1) {
-                data = new TextEncoder().encode(Q('d4editorarea').value); // UTF8 encoding
+                data = new TextEncoder().encode(value); // UTF8 encoding
             } else {
-                data = new TextEncoder().encode(decode_utf8(Q('d4editorarea').value)); // RAW encoding
+                data = new TextEncoder().encode(decode_utf8(value)); // RAW encoding
             }
             p13uploadFileContinue(1, [{ name: tag, size: data.byteLength, type: 'text/plain', xdata: data }]);
         }
@@ -11663,7 +11761,7 @@
             if (uploadFile.xfiles.length > uploadFile.xfilePtr) {
                 uploadFile.xptr = 0;
                 var file = uploadFile.xfiles[uploadFile.xfilePtr];
-                QH('p13dfileName', file.name);
+                QH('p13dfileName', EscapeHtml(file.name));
                 Q('d2progressBar').max = file.size;
                 Q('d2progressBar').value = 0;
                 if (file.xdata == null) {
@@ -11733,7 +11831,7 @@
                 if (start >= data.byteLength) {
                     files.sendText(JSON.stringify({ action: 'uploaddone', reqid: uploadFile.xfilePtr }));
                 } else {
-                    var end = uploadFile.xptr + 65565;
+                    var end = uploadFile.xptr + (attemptWebRTC ? 16384 : 65536);
                     if (end > data.byteLength) { if (dataPriming == true) { return; } end = data.byteLength; }
                     var dataslice = new Uint8Array(data.slice(start, end))
                     if ((dataslice[0] == 123) || (dataslice[0] == 0)) {
@@ -11749,7 +11847,7 @@
             } else if (uploadFile.xfile) {
                 if (uploadFile.xreader != null) return; // Data reading already in process
                 if (uploadFile.xptr >= uploadFile.xfile.size) return;
-                var end = uploadFile.xptr + 65565;
+                var end = uploadFile.xptr + (attemptWebRTC ? 16384 : 65536);
                 if (end > uploadFile.xfile.size) { if (dataPriming == true) { return; } end = uploadFile.xfile.size; }
                 uploadFile.xreader = new FileReader();
                 uploadFile.xreader.onerror = function (err) { console.log(err); }
@@ -11954,42 +12052,40 @@
             var sections = [], s = {};
 
             // Operating System
-            if ((hardware.windows && hardware.windows.osinfo) || node.osdesc) {
-                var x = '';
-                if (node.rname) { x += addDetailItem("Name", EscapeHtml(node.rname), s); }
-                if (node.osdesc) { x += addDetailItem("Version", EscapeHtml(node.osdesc), s); }
-                if (hardware.windows && hardware.windows.osinfo) {
-                    var m = hardware.windows.osinfo;
-                    if (m.OSArchitecture) {
-                        if (m.OSArchitecture.startsWith('32')) { x += addDetailItem("Architecture", "32-bit", s); }
-                        else if (m.OSArchitecture.startsWith('64')) { x += addDetailItem("Architecture", "64-bit", s); }
-                        else { x += addDetailItem("Architecture", EscapeHtml(m.OSArchitecture), s); }
-                    }
-                    if(m.LastBootUpTime){
-                        var thedate = {
-                            year: parseInt(m.LastBootUpTime.substring(0, 4)),
-                            month: parseInt(m.LastBootUpTime.substring(4, 6)) - 1, // Months are 0-based in JavaScript (0 - January, 11 - December)
-                            day: parseInt(m.LastBootUpTime.substring(6, 8)),
-                            hours: parseInt(m.LastBootUpTime.substring(8, 10)),
-                            minutes: parseInt(m.LastBootUpTime.substring(10, 12)),
-                            seconds: parseInt(m.LastBootUpTime.substring(12, 14)),
-                        };
-                        const date = printDateTime(new Date(thedate.year, thedate.month, thedate.day, thedate.hours, thedate.minutes, thedate.seconds));
-                        x += addDetailItem("Last Boot Up Time", date);
-                    }
+            var x = '';
+            if (node.rname) { x += addDetailItem("Name", EscapeHtml(node.rname), s); }
+            if (node.osdesc) { x += addDetailItem("Version", EscapeHtml(node.osdesc), s); }
+            if (hardware.windows && hardware.windows.osinfo) {
+                var m = hardware.windows.osinfo;
+                if (m.OSArchitecture) {
+                    if (m.OSArchitecture.startsWith('32')) { x += addDetailItem("Architecture", "32-bit", s); }
+                    else if (m.OSArchitecture.startsWith('64')) { x += addDetailItem("Architecture", "64-bit", s); }
+                    else { x += addDetailItem("Architecture", EscapeHtml(m.OSArchitecture), s); }
                 }
-                if(hardware.linux && hardware.linux.LastBootUpTime){
-                    var lastBootUpTime = new Date(hardware.linux.LastBootUpTime);
-                    const date = printDateTime(lastBootUpTime);
+                if(m.LastBootUpTime){
+                    var thedate = {
+                        year: parseInt(m.LastBootUpTime.substring(0, 4)),
+                        month: parseInt(m.LastBootUpTime.substring(4, 6)) - 1, // Months are 0-based in JavaScript (0 - January, 11 - December)
+                        day: parseInt(m.LastBootUpTime.substring(6, 8)),
+                        hours: parseInt(m.LastBootUpTime.substring(8, 10)),
+                        minutes: parseInt(m.LastBootUpTime.substring(10, 12)),
+                        seconds: parseInt(m.LastBootUpTime.substring(12, 14)),
+                    };
+                    const date = printDateTime(new Date(thedate.year, thedate.month, thedate.day, thedate.hours, thedate.minutes, thedate.seconds));
                     x += addDetailItem("Last Boot Up Time", date);
                 }
-                if(hardware.darwin && hardware.darwin.LastBootUpTime){
-                    var lastBootUpTime = new Date(hardware.darwin.LastBootUpTime * 1000); // must times by 1000 even tho timestamp is correct?
-                    const date = printDateTime(lastBootUpTime);
-                    x += addDetailItem("Last Boot Up Time", date);
-                }
-                if (x != '') { sections.push({ name: "Operating System", html: x, img: 'software64.png'}); }
             }
+            if(hardware.linux && hardware.linux.LastBootUpTime){
+                var lastBootUpTime = new Date(hardware.linux.LastBootUpTime);
+                const date = printDateTime(lastBootUpTime);
+                x += addDetailItem("Last Boot Up Time", date);
+            }
+            if(hardware.darwin && hardware.darwin.LastBootUpTime){
+                var lastBootUpTime = new Date(hardware.darwin.LastBootUpTime * 1000); // must times by 1000 even tho timestamp is correct?
+                const date = printDateTime(lastBootUpTime);
+                x += addDetailItem("Last Boot Up Time", date);
+            }
+            if (x != '') { sections.push({ name: "Operating System", html: x, img: 'software64.png'}); }    
 
             // MeshAgent
             if (node.agent) {
@@ -12133,6 +12229,8 @@
             if (node.intelamt != null) {
                 var x = '';
                 x += addDetailItem("Version", (node.intelamt.ver)?('v' + EscapeHtml(node.intelamt.ver)):('<i>' + "Unknown" + '</i>'), s);
+                var hardwareidentifier = hardware.identifiers && hardware.identifiers.product_uuid;
+                x += addDetailItem("Identifier", (node.intelamt.uuid) ? (EscapeHtml(node.intelamt.uuid)) : (hardwareidentifier ? EscapeHtml(hardwareidentifier) : '<i>' + "Unknown" + '</i>'), s);
                 var provisioningStates = { 0: nobreak("Not Activated"), 1: nobreak("Pre-activation"), 2: nobreak("Activated") };
                 var provisioningMode = '';
                 if ((node.intelamt.state == 2) && node.intelamt.flags) { if (node.intelamt.flags & 2) { provisioningMode = (', ' + "Client Control Mode (CCM)"); } else if (node.intelamt.flags & 4) { provisioningMode = (', ' + "Admin Control Mode (ACM)"); } }
@@ -12582,7 +12680,7 @@
             if (e.shiftKey == true) { meshserver.send({ action: 'uploadagentcore', nodeids: [ consoleNode._id ], type: 'default' }); } // Upload default core
             else if (e.altKey == true) { meshserver.send({ action: 'uploadagentcore', nodeids: [ consoleNode._id ], type: 'clear' }); } // Clear the core
             else if (e.ctrlKey == true) { p15uploadCore2(); } // Upload the core from a file
-            else { setDialogMode(2, "Perform Agent Action", 3, p15uploadCoreEx, addHtmlValue("Action", '<select id=d3coreMode style=width:230px><option value=1>' + "Upload default server core" + '</option><option value=2>' + "Clear the core" + '</option><option value=6>' + "Upload recovery core" + '</option><option value=7>' + "Upload tiny core" + '</option><option value=3>' + "Upload a core file" + '</option><option value=4>' + "Soft disconnect agent" + '</option><option value=5>' + "Hard disconnect agent" + '</option></select>')); }
+            else { setDialogMode(2, "Perform Agent Action", 3, p15uploadCoreEx, addHtmlValue("Action", '<select id=d3coreMode style=width:230px><option value=1>' + "Upload default server core" + '</option><option value=2>' + "Clear the core" + '</option><option value=6>' + "Upload recovery core" + '</option><option value=7>' + "Upload tiny core" + '</option><option value=3>' + "Upload a core file" + '</option><option value=4>' + "Soft disconnect agent" + '</option><option value=5>' + "Hard disconnect agent" + '</option><option value=8>' + "Restart agent service" + '</select>')); }
         }
 
         function p15uploadCoreEx() {
@@ -12607,6 +12705,9 @@
             } else if (Q('d3coreMode').value == 7) {
                 // Upload a tiny core
                 meshserver.send({ action: 'uploadagentcore', nodeids: [ consoleNode._id ], type:'tiny' });
+            } else if (Q('d3coreMode').value == 8) {
+                // Restart MeshAgent service
+                meshserver.send({ action: 'msg', type: 'console', nodeid: consoleNode._id, value:'service restart' });
             }
         }
 
@@ -13680,7 +13781,7 @@
             p20editMeshAmtChange();
 
             // Set the current Intel AMT policy
-            if (currentMesh.amt && (currentMesh.amt.type == 2) || (currentMesh.amt.type == 3)) {
+            if (currentMesh.amt && ((currentMesh.amt.type == 2) || (currentMesh.amt.type == 3))) {
                 Q('dp20amtpolicypass').value = currentMesh.amt.password;
                 if ((currentMesh.amt.type == 2) || (currentMesh.amt.type == 3)) {
                     if (currentMesh.amt.badpass != null) { Q('dp20amtbadpass').value = currentMesh.amt.badpass; }
@@ -14402,7 +14503,7 @@
                 var x = "Invitation codes can be used by anyone to join devices to this device group using the following public link:" + '<br /><br />';
                 x += '<div style=width:100%;text-align:center><a rel="noreferrer noopener" target=_blank href="' + url + '">' + url + '</a></div><br />';
                 x += addHtmlValue("Invite Codes", currentMesh.invite.codes.join(', '));
-                x += addHtmlValue("Installation Type", ["Background and interactive", "Background only", "Interactive only"][currentMesh.invite.flags & 3]);
+                x += addHtmlValue("Installation Type", ["Background and interactive", "Interactive only", "Background only"][currentMesh.invite.flags & 3]);
                 setDialogMode(2, "Invite Codes", 1, null, x);
             }
         }
@@ -14662,7 +14763,7 @@
                     fullPath += ' / ' + filetreelocation[i];
                     if ((folderdepth == 1)) {
                         var sp = filetreelocation[i].split('/');
-                        publicPath = (("" + window.location).split('?')[0]) + sp[0] + 'files/' + sp[2];
+                        publicPath = window.location.origin + domainUrl + sp[0] + 'files/' + sp[2];
                         //if (filetreelocation[i] === userinfo._id) { filetreelinkpath += 'self'; } else { filetreelinkpath += (sp[0] + '/' + sp[2]); }
                         filetreelinkpath += filetreelocation[i];
                     } else {
@@ -16657,7 +16758,7 @@
 
             // Show bottom buttons
             x = '<div style=float:right;font-size:small>';
-            if (userAdminRights) { x += '<a href=# style=cursor:pointer onclick=\'return p30showDeleteUserDialog()\' title="' + "Remove this user" + '">' + "Delete User" + '</a>'; }
+            if (userAdminRights && (userinfo._id != user._id)) { x += '<a href=# style=cursor:pointer onclick=\'return p30showDeleteUserDialog()\' title="' + "Remove this user" + '">' + "Delete User" + '</a>'; }
             x += '</div><div style=font-size:small>';
             // If user admin rights and not SSPI/LDAP and UserID does not start with ~, show change password
             if (userAdminRights && ((features & 0x00080000) == 0) && (user._id.split('/')[2][0] != '~')) {
@@ -17327,7 +17428,7 @@
                     d3filetreelocation2.push(d3filetreelocation[i]);
                     if ((folderdepth == 1)) {
                         var sp = d3filetreelocation[i].split('/');
-                        publicPath = window.location + sp[0] + 'files/' + sp[2];
+                        publicPath = window.location.origin + domainUrl + sp[0] + 'files/' + sp[2];
                         if (d3filetreelocation[i] === userinfo._id) { d3filetreelinkpath += 'self'; } else { d3filetreelinkpath += (sp[0] + '/' + sp[2]); }
                     } else {
                         if (d3filetreelinkpath != '') { d3filetreelinkpath += '/' + d3filetreelocation[i]; if (folderdepth > 2) { publicPath += '/' + d3filetreelocation[i]; } }
@@ -19085,6 +19186,7 @@
         function round(value, precision) { var multiplier = Math.pow(10, precision || 0); return Math.round(value * multiplier) / multiplier; }
         function safeNewWindow(url, target) { var newWindow = window.open(url, target, 'noopener,noreferrer'); if (newWindow) { newWindow.opener = null; } }
         function isWindowsNode(node) { if ((node.mtype != 2) || (node.agent == null) || (node.agent.id == null)) return false; return ([1,2,3,4,21,22,34,42,43].indexOf(node.agent.id) >= 0); }
+        function isMacNode(node) { if ((node.mtype != 2) || (node.agent == null) || (node.agent.id == null)) return false; return ([11,16,29].indexOf(node.agent.id) >= 0); }
 
         function downloadFile(link, name, closeDialog) {
             var element = document.createElement('a');
