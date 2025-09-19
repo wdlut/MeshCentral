@@ -18,28 +18,21 @@ var promise = require('promise');
 
 function qfe()
 {
-    var child = require('child_process').execFile(process.env['windir'] + '\\System32\\wbem\\wmic.exe', ['wmic', 'qfe', 'list', 'full', '/FORMAT:CSV']);
-    child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-    child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
-    child.waitExit();
-
-    var lines = child.stdout.str.trim().split('\r\n');
-    var keys = lines[0].split(',');
-    var i, key;
-    var tokens;
-    var result = [];
-
-    for (i = 1; i < lines.length; ++i)
-    {
-        var obj = {};
-        tokens = lines[i].split(',');
-        for (key = 0; key < keys.length; ++key)
-        {
-            if (tokens[key]) { obj[keys[key]] = tokens[key]; }
+    try {
+        var tokens = require('win-wmi').query('ROOT\\CIMV2', 'SELECT * FROM Win32_QuickFixEngineering');
+        if (tokens[0]){
+            for (var index = 0; index < tokens.length; index++) {
+                for (var key in tokens[index]) {
+                    if (key.startsWith('__')) delete tokens[index][key];
+                }
+            }
+            return (tokens);
+        } else {
+            return ([]);
         }
-        result.push(obj);
+    } catch (ex) {
+        return ([]);
     }
-    return (result);
 }
 function av()
 {
@@ -250,12 +243,11 @@ function installedApps()
 function defender(){
     var promise = require('promise');
     var ret = new promise(function (a, r) { this._resolve = a; this._reject = r; });
-    ret.child = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', '-'], {});
+    var cmd = '"Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,IsTamperProtected | ConvertTo-JSON"';
+    ret.child = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', cmd], {});
     ret.child.promise = ret;
     ret.child.stdout.str = ''; ret.child.stdout.on('data', function (c) { this.str += c.toString(); });
     ret.child.stderr.str = ''; ret.child.stderr.on('data', function (c) { this.str += c.toString(); });
-    ret.child.stdin.write('Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,IsTamperProtected | ConvertTo-JSON\r\n');
-    ret.child.stdin.write('exit\r\n');
     ret.child.on('exit', function (c) { 
         if (this.stdout.str == '') { this.promise._resolve({}); return; }
         var abc = JSON.parse(this.stdout.str.trim())

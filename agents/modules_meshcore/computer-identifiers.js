@@ -86,6 +86,19 @@ function linux_identifiers()
                 identifiers['board_vendor'] = 'Raspberry Pi';
                 identifiers['board_name'] = require('fs').readFileSync('/sys/firmware/devicetree/base/model').toString().trim();
                 identifiers['board_serial'] = require('fs').readFileSync('/sys/firmware/devicetree/base/serial-number').toString().trim();
+                const memorySlots = [];
+                var child = require('child_process').execFile('/bin/sh', ['sh']);
+                child.stdout.str = ''; child.stdout.on('data', dataHandler);
+                child.stdin.write('vcgencmd get_mem arm && vcgencmd get_mem gpu\nexit\n');
+                child.waitExit();
+                try { 
+                    const lines = child.stdout.str.trim().split('\n');
+                    if (lines.length == 2) {
+                        memorySlots.push({ Locator: "ARM Memory", Size: lines[0].split('=')[1].trim() })
+                        memorySlots.push({ Locator: "GPU Memory", Size: lines[1].split('=')[1].trim() })
+                        ret.memory = { Memory_Device: memorySlots };
+                    }
+                } catch (xx) { }
             } else {
                 throw('Unknown board');
             }
@@ -419,11 +432,12 @@ function windows_volumes()
     p1._p2 = p2;
     p2._p1 = p1;
 
-    var child = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', '-']);
+    var cmd = '"Get-Volume | Select-Object -Property DriveLetter,FileSystemLabel,FileSystemType,Size,SizeRemaining,DriveType | ConvertTo-Csv -NoTypeInformation"';
+    var child = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', cmd]);
     p1.child = child;
     child.promise = p1;
     child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-    child.stdin.write('Get-Volume | Select-Object -Property DriveLetter,FileSystemLabel,FileSystemType,Size,SizeRemaining,DriveType | ConvertTo-Csv -NoTypeInformation\nexit\n');
+    child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
     child.on('exit', function (c)
     {
         var a, i, tokens, key;
@@ -454,12 +468,13 @@ function windows_volumes()
         var ret = j.r;
         var tokens = j.t;
 
-        var child = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', '-']);
+        var cmd = '"Get-BitLockerVolume | Select-Object -Property MountPoint,VolumeStatus,ProtectionStatus | ConvertTo-Csv -NoTypeInformation"';
+        var child = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', cmd]);
         p2.child = child;
         child.promise = p2;
         child.tokens = tokens;
         child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-        child.stdin.write('Get-BitLockerVolume | Select-Object -Property MountPoint,VolumeStatus,ProtectionStatus | ConvertTo-Csv -NoTypeInformation\nexit\n');
+        child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
         child.on('exit', function ()
         {
             var i;
@@ -474,7 +489,7 @@ function windows_volumes()
                     ret[key].protectionStatus = tokens[2].split('"')[1];
                     try {
                         var foundIDMarkedLine = false, foundMarkedLine = false, identifier = '', password = '';
-                        var keychild = require('child_process').execFile(process.env['windir'] + '\\system32\\cmd.exe', ['/c', 'manage-bde -protectors -get ', tokens[0].split('"')[1], ' -Type recoverypassword'], {});
+                        var keychild = require('child_process').execFile(process.env['windir'] + '\\system32\\cmd.exe', ['cmd', '/c', 'manage-bde -protectors -get ', tokens[0].split('"')[1], ' -Type recoverypassword'], {});
                         keychild.stdout.str = ''; keychild.stdout.on('data', function (c) { this.str += c.toString(); });
                         keychild.waitExit();
                         var lines = keychild.stdout.str.trim().split('\r\n');
@@ -788,32 +803,34 @@ function hexToAscii(hexString) {
 
 function win_chassisType()
 {
-    var child = require('child_process').execFile(process.env['windir'] + '\\System32\\wbem\\wmic.exe', ['wmic', 'SystemEnclosure', 'get', 'ChassisTypes']);
+    // needs to be replaced with win-wmi but due to bug in win-wmi it doesnt handle arrays correctly
+    var cmd = '"Get-CimInstance Win32_SystemEnclosure | Select-Object -ExpandProperty ChassisTypes"';
+    var child = require('child_process').execFile(process.env['windir'] + '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-noprofile', '-nologo', '-command', cmd], {});
+    if (child == null) { return ([]); }
+    child.descriptorMetadata = 'process-manager';
     child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
     child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
     child.waitExit();
-
-    try
-    {
-        var tok = child.stdout.str.split('{')[1].split('}')[0];
-        var val = tok.split(',')[0];
-        return (parseInt(val));
-    }
-    catch (e)
-    {
+    try {
+        return (parseInt(child.stdout.str));
+    } catch (e) {
         return (2); // unknown
     }
 }
 
 function win_systemType()
 {
-    var CSV = '/FORMAT:"' + require('util-language').wmicXslPath + 'csv"';
-    var child = require('child_process').execFile(process.env['windir'] + '\\System32\\wbem\\wmic.exe', ['wmic', 'ComputerSystem', 'get', 'PCSystemType', CSV]);
-    child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-    child.stderr.str = ''; child.stderr.on('data', function (c) { this.str += c.toString(); });
-    child.waitExit();
+    try {
+        var tokens = require('win-wmi').query('ROOT\\CIMV2', 'SELECT PCSystemType FROM Win32_ComputerSystem', ['PCSystemType']);
+        if (tokens[0]) {
+            return (parseInt(tokens[0]['PCSystemType']));
+        } else {
+            return (parseInt(1)); // default is desktop
+        }
+    } catch (ex) {
+        return (parseInt(1)); // default is desktop
+    }
 
-    return (parseInt(child.stdout.str.trim().split(',').pop()));
 }
 
 function win_formFactor(chassistype)
@@ -938,6 +955,7 @@ module.exports.isVM = function isVM()
             case 'Xen':
             case 'SeaBIOS':
             case 'EFI Development Kit II / OVMF':
+            case 'Proxmox distribution of EDK II':
                 ret = true;
                 break;
             default:
