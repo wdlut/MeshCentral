@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.3
+- Relocated the plugin into the `wdlut/plugins/wdVncPlugin` repository and updated metadata links.
+
 ## 0.1.2
 - Renamed the project to wdVncPlugin and aligned identifiers across the codebase.
 

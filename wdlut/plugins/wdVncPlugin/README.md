@@ -1,6 +1,6 @@
 # wdVncPlugin
 
-The wdVncPlugin adds a configurable noVNC launch button to the MeshCentral device view. The button mirrors the existing `Web-VNC` link but allows additional query parameters to be appended to the generated `novnc/vnc.html` URL. This makes it possible to pre-configure features such as automatic connection, view-only mode, or other options supported by noVNC.
+The wdVncPlugin adds a configurable noVNC launch button to the MeshCentral device view. The button mirrors the existing `Web-VNC` link but allows additional query parameters to be appended to the generated `novnc/vnc.html` URL. This makes it possible to pre-configure features such as automatic connection, view-only mode, or other options supported by noVNC. The plugin now lives in the standalone [`wdlut/plugins`](https://github.com/wdlut/plugins/tree/main/wdVncPlugin) repository so it can evolve independently from the MeshCentral source tree.
 
 ## Installation
 
@@ -14,7 +14,7 @@ The wdVncPlugin adds a configurable noVNC launch button to the MeshCentral devic
    }
    ```
    Alternatively you can upload the plugin bundle through **My Server → Plugins → Download Plugin**.
-2. Copy the `wedlut/plugins/wdVncPlugin` directory into `meshcentral-data/plugins/wdVncPlugin`.
+2. Copy the `wdlut/plugins/wdVncPlugin` directory into `meshcentral-data/plugins/wdVncPlugin`.
 3. Restart MeshCentral or refresh the plugin handler from the UI.
 4. Enable the *wdVncPlugin* entry from the **My Server → Plugins** page.
 
