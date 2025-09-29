@@ -1,0 +1,28 @@
+{
+  "name": "wdVncPlugin",
+  "shortName": "wdVncPlugin",
+  "version": "0.1.2",
+  "author": "MeshCentral Contributors",
+  "description": "Adds a configurable button to the device view that launches noVNC sessions with custom parameters.",
+  "hasAdminPanel": false,
+  "homepage": "https://github.com/Ylianst/MeshCentral/tree/master/plugins/wdVncPlugin",
+  "changelogUrl": "https://github.com/Ylianst/MeshCentral/blob/master/plugins/wdVncPlugin/CHANGELOG.md",
+  "configUrl": "https://raw.githubusercontent.com/Ylianst/MeshCentral/master/plugins/wdVncPlugin/config.json",
+  "downloadUrl": "https://github.com/Ylianst/MeshCentral/archive/refs/heads/master.zip",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ylianst/MeshCentral.git"
+  },
+  "meshCentralCompat": ">=1.1.0",
+  "settings": {
+    "buttonLabel": "Custom Web-VNC",
+    "buttonTooltip": "Launch a noVNC session with custom parameters",
+    "appendDefaultName": true,
+    "hideDefaultWebVncLink": false,
+    "windowNamePrefix": "wdvncplugin",
+    "queryString": "",
+    "queryParameters": {
+      "autoconnect": "true"
+    }
+  }
+}
