@@ -14,7 +14,7 @@ The wdVncPlugin adds a configurable noVNC launch button to the MeshCentral devic
    }
    ```
    Alternatively you can upload the plugin bundle through **My Server → Plugins → Download Plugin**.
-2. Copy the `plugins/wdVncPlugin` directory into `meshcentral-data/plugins/wdVncPlugin`.
+2. Copy the `wedlut/plugins/wdVncPlugin` directory into `meshcentral-data/plugins/wdVncPlugin`.
 3. Restart MeshCentral or refresh the plugin handler from the UI.
 4. Enable the *wdVncPlugin* entry from the **My Server → Plugins** page.
 
