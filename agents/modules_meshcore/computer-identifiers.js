@@ -63,6 +63,17 @@ function dataHandler(c)
     this.str += c.toString();
 }
 
+function formatDate_yyyymmdd_hhmmss(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return year+"-"+month+"-"+day+" "+hours+":"+minutes+":"+seconds;
+}
+
 function linux_identifiers()
 {
     var identifiers = {};
@@ -360,24 +371,15 @@ function linux_identifiers()
 
     // Linux Last Boot Up Time
     try {
-        child = require('child_process').execFile('/usr/bin/uptime', ['', '-s']); // must include blank value at begining for some reason?
-        child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-        child.stderr.on('data', function () { });
-        child.waitExit();
-        var regex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
-        if (regex.test(child.stdout.str.trim())) {
-            values.linux.LastBootUpTime = child.stdout.str.trim();
-        } else {
-            child = require('child_process').execFile('/bin/sh', ['sh']);
-            child.stdout.str = ''; child.stdout.on('data', function (c) { this.str += c.toString(); });
-            child.stdin.write('date -d "@$(( $(date +%s) - $(awk \'{print int($1)}\' /proc/uptime) ))" "+%Y-%m-%d %H:%M:%S"\nexit\n');
-            child.waitExit();
-            if (regex.test(child.stdout.str.trim())) {
-                values.linux.LastBootUpTime = child.stdout.str.trim();
-            }
-        }
-        child = null;
-    } catch (ex) { }
+        const data = require('fs').readFileSync('/proc/uptime').toString().trim();
+        const uptimeSeconds = parseFloat(data.split(' ')[0]);
+        values.linux.upTimeSeconds = uptimeSeconds;
+        const bootTime = new Date( Date.now() - uptimeSeconds * 1000 );
+        const formattedBootTime = formatDate_yyyymmdd_hhmmss(bootTime);
+        values.linux.LastBootUpTime = formattedBootTime;
+    } catch (ex) {  
+        console.error("Failed to read and process /proc/uptime:", ex.message);
+    }
 
     // Linux TPM
     try {
