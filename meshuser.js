@@ -4679,8 +4679,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                         for( var pluginName in parent.parent.pluginHandler.plugins)
                             if( typeof parent.parent.pluginHandler.plugins[pluginName].uiCustomEvent === 'function' )
                                 parent.parent.pluginHandler.plugins[pluginName].uiCustomEvent(command, obj);
-                    } catch (ex) { console.log('Error loading plugin handler (' + ex + ')'); }
-                }
+                    } catch (ex) { console.log('Error loading plugin handler for '+pluginName+' (' + ex + ')'); }
+                 }
                 break;
             }
             case 'serverBackup': {
